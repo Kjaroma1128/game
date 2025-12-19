@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
-  <title>Arithmetic Arena Snake (Prototype v2)</title>
+  <title>Arithmetic Arena Snake (Prototype v2 - Bigger & Slower)</title>
   <style>
     body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:#0b0f14; color:#e8eef7; }
     .topbar { display:flex; gap:10px; align-items:center; padding:10px 12px; position:sticky; top:0; background:#0b0f14; z-index:3; flex-wrap:wrap; }
@@ -11,7 +11,15 @@
     button { cursor:pointer; border:1px solid #223044; background:#0f1620; color:#e8eef7; padding:8px 10px; border-radius:10px; font-size:13px; }
     button:active { transform: translateY(1px); }
     .wrap { display:flex; justify-content:center; padding:10px 12px 24px; }
-    canvas { background:#0f1620; border:1px solid #223044; border-radius:16px; touch-action:none; }
+
+    /* ✅ 모바일에서 화면에 맞춰 축소 표시되도록 */
+    canvas {
+      background:#0f1620; border:1px solid #223044; border-radius:16px; touch-action:none;
+      width: min(92vw, 560px);
+      height: auto;
+      display:block;
+    }
+
     .hint { opacity:.85; font-size:13px; padding:0 14px 14px; line-height:1.35; }
 
     .overlay {
@@ -19,7 +27,7 @@
       background: rgba(5,8,12,.78); z-index:10;
     }
     .card {
-      width:min(92vw, 440px);
+      width:min(92vw, 460px);
       background:#0f1620; border:1px solid #223044; border-radius:18px; padding:16px;
       box-shadow: 0 10px 30px rgba(0,0,0,.35);
     }
@@ -42,12 +50,13 @@
     <div class="pill">무적: <b id="shield">0</b>s</div>
     <div class="pill">칼: <b id="sword">0</b>s</div>
     <div class="pill">AI 수: <b id="aiAlive">9</b>/9</div>
-    <div class="pill">TPS: <b id="tps">10</b></div>
+    <div class="pill">TPS: <b id="tps">6</b></div>
     <button id="restart">재시작</button>
   </div>
 
   <div class="wrap">
-    <canvas id="c" width="420" height="420"></canvas>
+    <!-- ✅ 캔버스 실제 해상도도 크게 -->
+    <canvas id="c" width="560" height="560"></canvas>
   </div>
 
   <div class="hint">
@@ -92,19 +101,21 @@
   const CANVAS = document.getElementById('c');
   const ctx = CANVAS.getContext('2d');
 
-  const GRID = 21;
+  /* ✅ 판을 더 크게: 21 -> 28 */
+  const GRID = 28;
   const CELL = CANVAS.width / GRID;
 
   const AI_COUNT = 9;
   const TOTAL_SNAKES = 1 + AI_COUNT;
 
-  const BASE_TPS = 10;
-  const MAX_TPS = 16;
+  /* ✅ 속도 느리게: (1~10 중 4정도 체감) */
+  const BASE_TPS = 6;  // 이전 10
+  const MAX_TPS  = 9;  // 부스터 상한 제한
 
   const OP_FOOD_MIN = 1;
   const OP_FOOD_MAX = 100;
 
-  const POWERUP_SPAWN_INTERVAL = 5200; // ms
+  const POWERUP_SPAWN_INTERVAL = 5600; // ms (약간 여유)
   const POWERUP_DURATION = 5000;       // ms
   const AI_RESPAWN_DELAY = 2000;       // ms
 
@@ -129,13 +140,11 @@
   const tpsEl = document.getElementById('tps');
   const restartBtn = document.getElementById('restart');
 
-  // Quiz elements
   const quizOverlay = document.getElementById('quizOverlay');
   const quizQEl = document.getElementById('quizQ');
   const quizAEl = document.getElementById('quizA');
   const quizGoBtn = document.getElementById('quizGo');
 
-  // GameOver
   const gameOverOverlay = document.getElementById('gameOverOverlay');
   const goRestartBtn = document.getElementById('goRestart');
 
@@ -144,7 +153,6 @@
   const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
   const key = (x, y) => `${x},${y}`;
   const nowMs = () => performance.now();
-
   function idiv(a, b) { return b === 0 ? a : (a / b) | 0; }
 
   function applyOpFood(val, op, n) {
@@ -164,7 +172,7 @@
 
   function targetLengthForValue(v) {
     const t = Math.log10(Math.max(1, v) + 1);
-    return clamp(4 + Math.floor(t * 4), 4, 16);
+    return clamp(4 + Math.floor(t * 4), 4, 18); // 판 커졌으니 상한도 살짝
   }
 
   const DIRS = [{x:1,y:0},{x:-1,y:0},{x:0,y:1},{x:0,y:-1}];
@@ -184,9 +192,31 @@
   let lastTs = nowMs();
   let lastPowerSpawnAt = 0;
 
-  // quiz
   let quiz = null;
 
+  // ===================== Spawning helpers =====================
+  function occupiedSet() {
+    const occ = new Set();
+    for (const s of snakes) {
+      if (!s.alive) continue;
+      for (const p of s.body) occ.add(key(p.x, p.y));
+    }
+    for (const f of foods) occ.add(key(f.x, f.y));
+    for (const p of powerups) occ.add(key(p.x, p.y));
+    return occ;
+  }
+
+  function findEmptyCell(maxTry=1200) {
+    const occ = occupiedSet();
+    for (let i=0;i<maxTry;i++){
+      const x = randInt(0, GRID-1);
+      const y = randInt(0, GRID-1);
+      if (!occ.has(key(x,y))) return {x,y};
+    }
+    return {x: randInt(0, GRID-1), y: randInt(0, GRID-1)};
+  }
+
+  // ===================== Snake factory =====================
   function makeSnake(id, isPlayer, startValue) {
     const pos = findEmptyCell();
     const dir = isPlayer ? {x:1,y:0} : DIRS[randInt(0,3)];
@@ -211,7 +241,7 @@
       shieldMs: 0,
       swordMs: 0,
       aiThinkCooldown: 0,
-      respawnMs: 0,    // AI respawn timer
+      respawnMs: 0,
       alive: true
     };
   }
@@ -227,7 +257,8 @@
       snakes.push(makeSnake(i, false, randInt(1,10)));
     }
 
-    for (let i=0;i<8;i++) spawnOpFood();
+    // 판 커졌으니 먹이도 조금 더
+    for (let i=0;i<12;i++) spawnOpFood();
 
     tps = BASE_TPS;
     acc = 0;
@@ -242,28 +273,7 @@
     draw();
   }
 
-  // ===================== Spawning =====================
-  function occupiedSet() {
-    const occ = new Set();
-    for (const s of snakes) {
-      if (!s.alive) continue;
-      for (const p of s.body) occ.add(key(p.x, p.y));
-    }
-    for (const f of foods) occ.add(key(f.x, f.y));
-    for (const p of powerups) occ.add(key(p.x, p.y));
-    return occ;
-  }
-
-  function findEmptyCell(maxTry=700) {
-    const occ = occupiedSet();
-    for (let i=0;i<maxTry;i++){
-      const x = randInt(0, GRID-1);
-      const y = randInt(0, GRID-1);
-      if (!occ.has(key(x,y))) return {x,y};
-    }
-    return {x: randInt(0, GRID-1), y: randInt(0, GRID-1)};
-  }
-
+  // ===================== Foods / Powerups =====================
   function spawnOpFood() {
     const ops = ['+','×','÷'];
     const pos = findEmptyCell();
@@ -335,7 +345,6 @@
     if (!s.alive) return;
     const head = s.body[0];
 
-    // targets: smaller heads to chase, bigger heads to avoid
     let small = null, smallD = 1e9;
     let big = null, bigD = 1e9;
 
@@ -352,28 +361,25 @@
 
     for (const d of DIRS) {
       if (d.x === -s.dir.x && d.y === -s.dir.y) continue;
-
       const nx = head.x + d.x;
       const ny = head.y + d.y;
-
-      // avoid walls
       if (nx < 0 || ny < 0 || nx >= GRID || ny >= GRID) continue;
 
-      // self collision (optional): avoid own body
+      // (선택) 자기 몸 충돌 회피 유지
       if (s.body.some(p => p.x === nx && p.y === ny)) continue;
 
       let score = 0;
 
       if (small) {
         const dist = Math.abs(small.x - nx) + Math.abs(small.y - ny);
-        score += (50 - dist);
+        score += (60 - dist);
       }
       if (big) {
         const dist = Math.abs(big.x - nx) + Math.abs(big.y - ny);
-        score += clamp(dist - 3, -50, 50) * 1.35;
+        score += clamp(dist - 3, -80, 80) * 1.2;
       }
 
-      // mild attraction to foods/powerups
+      // foods/powerups attraction
       let fd = 1e9, pd = 1e9, puKind = null;
       for (const f of foods) {
         const dist = Math.abs(f.x - nx) + Math.abs(f.y - ny);
@@ -383,13 +389,13 @@
         const dist = Math.abs(p.x - nx) + Math.abs(p.y - ny);
         if (dist < pd) { pd = dist; puKind = p.kind; }
       }
-      score += (20 - fd) * 0.25;
+      score += (24 - fd) * 0.22;
 
       if (puKind) {
         let w = 0.55;
         if (puKind === 'sword') w = 1.0;
         if (puKind === 'shield') w = 0.8;
-        score += (18 - pd) * w;
+        score += (20 - pd) * w;
       }
 
       score += (Math.random() - 0.5) * 0.6;
@@ -399,7 +405,7 @@
     s.nextDir = {...best};
   }
 
-  // ===================== Core tick =====================
+  // ===================== Timers & Loop =====================
   function stepTimers(dtMs) {
     for (const s of snakes) {
       if (s.alive) {
@@ -427,7 +433,9 @@
     if (!gameRunning || gameOver) return;
 
     const player = snakes[0];
-    const boostFactor = (player && player.alive && player.boostMs > 0) ? 1.35 : 1.0;
+
+    /* ✅ 부스터 완화: 1.35 -> 1.20, 상한 MAX_TPS=9 */
+    const boostFactor = (player && player.alive && player.boostMs > 0) ? 1.20 : 1.0;
     tps = clamp(Math.round(BASE_TPS * boostFactor), BASE_TPS, MAX_TPS);
 
     // AI think
@@ -436,24 +444,21 @@
       if (!s.alive) continue;
       if (s.aiThinkCooldown <= 0) {
         aiChooseDirection(s);
-        s.aiThinkCooldown = 130;
+        s.aiThinkCooldown = 150; // 조금 더 느긋하게
       }
     }
 
     // commit dirs + compute next heads
-    const nextHeads = new Map(); // id -> {x,y}
+    const nextHeads = new Map();
     for (const s of snakes) {
       if (!s.alive) continue;
-      // no instant reverse
-      if (s.nextDir.x === -s.dir.x && s.nextDir.y === -s.dir.y) {
-        s.nextDir = {...s.dir};
-      }
+      if (s.nextDir.x === -s.dir.x && s.nextDir.y === -s.dir.y) s.nextDir = {...s.dir};
       s.dir = {...s.nextDir};
       const h = s.body[0];
       nextHeads.set(s.id, {x: h.x + s.dir.x, y: h.y + s.dir.y});
     }
 
-    // wall/self collision (player: game over, AI: respawn timer)
+    // wall/self collision
     for (const s of snakes) {
       if (!s.alive) continue;
       const nh = nextHeads.get(s.id);
@@ -461,14 +466,12 @@
         killSnake(s, "wall");
         continue;
       }
-      // self collision 유지(명시 없었으나, 스네이크 기본 룰로 처리) [추론/연역]
       if (s.body.some(p => p.x === nh.x && p.y === nh.y)) {
         killSnake(s, "self");
       }
     }
 
-    // head-to-head collisions only
-    // build position -> list of snake ids (alive only)
+    // head-to-head only
     const posMap = new Map();
     for (const s of snakes) {
       if (!s.alive) continue;
@@ -478,18 +481,14 @@
       posMap.get(k).push(s.id);
     }
 
-    // resolve head-head where 2+ snakes move into same cell
-    const cancelledMove = new Set(); // ids that will not move this tick
+    const cancelledMove = new Set();
 
     for (const [k, ids] of posMap.entries()) {
       if (ids.length < 2) continue;
 
-      // handle pairwise in a simple way:
-      // if multiple, resolve by strongest sword rule then value; shield causes bounce if no sword winner.
-      // (다자 충돌은 명시가 없어, 일반적인 우선순위로 처리) [추론/귀납]
       const contenders = ids.map(id => snakes[id]).filter(s => s && s.alive);
 
-      // if anyone has sword => the "best" sword-holder absorbs all in that cell
+      // sword wins & absorbs all
       const sworders = contenders.filter(s => s.swordMs > 0);
       if (sworders.length > 0) {
         sworders.sort((a,b) => b.value - a.value);
@@ -499,23 +498,20 @@
           absorb(winner, s);
           cancelledMove.add(s.id);
         }
-        // winner moves, losers removed
         continue;
       }
 
-      // if any has shield => bounce all (since shield prevents losing and no sword exists)
+      // shield => bounce all (no sword present)
       const hasShield = contenders.some(s => s.shieldMs > 0);
       if (hasShield) {
         for (const s of contenders) {
-          // bounce: cancel move + reverse for next tick
           cancelledMove.add(s.id);
           s.nextDir = opposite(s.dir);
         }
         continue;
       }
 
-      // otherwise: highest value absorbs others; tie among top => bounce those tied top, others get absorbed by one of them? (ambiguous)
-      // choose: if top tie => everyone bounces (simple, stable) [추론/연역]
+      // otherwise: biggest absorbs, tie => bounce
       contenders.sort((a,b) => b.value - a.value);
       const topV = contenders[0].value;
       const topOnes = contenders.filter(s => s.value === topV);
@@ -525,7 +521,6 @@
           cancelledMove.add(s.id);
           s.nextDir = opposite(s.dir);
         }
-        continue;
       } else {
         const winner = contenders[0];
         for (let i=1;i<contenders.length;i++){
@@ -535,7 +530,7 @@
       }
     }
 
-    // apply movement for survivors that aren't cancelled
+    // apply movement for non-cancelled survivors
     for (const s of snakes) {
       if (!s.alive) continue;
       if (cancelledMove.has(s.id)) continue;
@@ -567,7 +562,6 @@
         if (p.kind === 'sword') s.swordMs = POWERUP_DURATION;
       }
 
-      // adjust length to target (덩치)
       const targetLen = targetLengthForValue(s.value);
       while (s.body.length > targetLen) s.body.pop();
       while (s.body.length < targetLen) {
@@ -576,7 +570,7 @@
       }
     }
 
-    // powerup spawn
+    // spawn powerup
     const t = nowMs();
     if (t - lastPowerSpawnAt > POWERUP_SPAWN_INTERVAL && powerups.length < 4) {
       spawnPowerup();
@@ -591,12 +585,10 @@
   function absorb(winner, loser) {
     if (!winner.alive || !loser.alive) return;
 
-    // 칼은 무조건 흡수(요구사항). shield 여부와 무관하게 우선순위는 tick()에서 이미 처리.
     const prev = winner.value;
     winner.value = winner.value + loser.value;
     onValueChange(winner, prev, winner.value);
 
-    // winner grows
     const targetLen = targetLengthForValue(winner.value);
     while (winner.body.length < targetLen) {
       const tail = winner.body[winner.body.length-1];
@@ -604,7 +596,6 @@
     }
     while (winner.body.length > targetLen) winner.body.pop();
 
-    // loser dies
     killSnake(loser, "absorbed");
   }
 
@@ -612,7 +603,6 @@
     if (!s.alive) return;
 
     if (s.isPlayer) {
-      // player: game over
       s.alive = false;
       gameOver = true;
       gameRunning = false;
@@ -621,11 +611,9 @@
       return;
     }
 
-    // AI: 2초 후 리스폰
     s.alive = false;
     s.respawnMs = AI_RESPAWN_DELAY;
 
-    // drop to minimal state
     const prev = s.value;
     s.value = 1;
     onValueChange(s, prev, s.value);
@@ -633,7 +621,7 @@
     s.boostMs = 0;
     s.shieldMs = 0;
     s.swordMs = 0;
-    s.body = []; // not drawn while dead
+    s.body = [];
   }
 
   function respawnAI(s) {
@@ -654,23 +642,6 @@
         y: clamp(pos.y - i*s.dir.y, 0, GRID-1)
       });
     }
-  }
-
-  // ===================== Loop =====================
-  function frame(ts) {
-    const dt = ts - lastTs;
-    lastTs = ts;
-    acc += dt;
-
-    stepTimers(dt);
-
-    const stepMs = 1000 / tps;
-    while (acc >= stepMs) {
-      tick();
-      acc -= stepMs;
-    }
-
-    requestAnimationFrame(frame);
   }
 
   // ===================== Draw =====================
@@ -731,7 +702,7 @@
       ctx.fillText(icon, (p.x+0.5)*CELL, (p.y+0.5)*CELL+1);
     }
 
-    // snakes (dead AI are not drawn)
+    // snakes
     for (const s of snakes) {
       if (!s.alive) continue;
       const col = colorForValue(s.value);
@@ -796,7 +767,6 @@
       shieldEl.textContent = "0";
       swordEl.textContent = "0";
     }
-
     const aliveAI = snakes.slice(1).filter(s => s.alive).length;
     aiAliveEl.textContent = String(aliveAI);
     tpsEl.textContent = String(tps);
@@ -812,12 +782,11 @@
 
     if (op === '+') { ans = a + b; }
     if (op === '-') {
-      // 양수만 (요구사항)
       const hi = randInt(10, 99);
       const lo = randInt(10, hi);
       a = hi; b = lo;
       ans = a - b; // >=0
-      if (ans === 0) { a = hi; b = hi - 1; ans = 1; } // 0 회피(원치 않으면 제거 가능)
+      if (ans === 0) { a = hi; b = hi - 1; ans = 1; }
     }
     if (op === '×') { ans = a * b; }
     if (op === '÷') {
@@ -856,6 +825,22 @@
 
   restartBtn.addEventListener('click', showQuiz);
   goRestartBtn.addEventListener('click', showQuiz);
+
+  // ===================== Start loop =====================
+  function frame(ts) {
+    const dt = ts - lastTs;
+    lastTs = ts;
+    acc += dt;
+
+    stepTimers(dt);
+
+    const stepMs = 1000 / tps;
+    while (acc >= stepMs) {
+      tick();
+      acc -= stepMs;
+    }
+    requestAnimationFrame(frame);
+  }
 
   // boot
   showQuiz();
