@@ -1,851 +1,799 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
-  <title>Arithmetic Arena Snake (Prototype v2 - Bigger & Slower)</title>
-  <style>
-    body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:#0b0f14; color:#e8eef7; }
-    .topbar { display:flex; gap:10px; align-items:center; padding:10px 12px; position:sticky; top:0; background:#0b0f14; z-index:3; flex-wrap:wrap; }
-    .pill { padding:6px 10px; border:1px solid #223044; border-radius:999px; background:#0f1620; font-size:13px; }
-    button { cursor:pointer; border:1px solid #223044; background:#0f1620; color:#e8eef7; padding:8px 10px; border-radius:10px; font-size:13px; }
-    button:active { transform: translateY(1px); }
-    .wrap { display:flex; justify-content:center; padding:10px 12px 24px; }
-
-    /* ✅ 모바일에서 화면에 맞춰 축소 표시되도록 */
-    canvas {
-      background:#0f1620; border:1px solid #223044; border-radius:16px; touch-action:none;
-      width: min(92vw, 560px);
-      height: auto;
-      display:block;
-    }
-
-    .hint { opacity:.85; font-size:13px; padding:0 14px 14px; line-height:1.35; }
-
-    .overlay {
-      position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
-      background: rgba(5,8,12,.78); z-index:10;
-    }
-    .card {
-      width:min(92vw, 460px);
-      background:#0f1620; border:1px solid #223044; border-radius:18px; padding:16px;
-      box-shadow: 0 10px 30px rgba(0,0,0,.35);
-    }
-    .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-    input {
-      flex:1; min-width:140px;
-      background:#0b0f14; border:1px solid #223044; color:#e8eef7;
-      padding:10px 12px; border-radius:12px; font-size:15px; outline:none;
-    }
-    .title { font-size:16px; font-weight:700; margin:0 0 8px; }
-    .sub { margin:0 0 12px; opacity:.85; font-size:13px; }
-    .small { opacity:.75; font-size:12px; margin-top:8px; line-height:1.35; }
-  </style>
+<meta charset="UTF-8">
+<title>Car Race Arena - Sprunki Edition</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:#0a0f1a;overflow:hidden;font-family:Arial,sans-serif;color:#fff;}
+  canvas{display:block;}
+  #startScreen{
+    position:fixed;inset:0;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;
+    background:rgba(8,12,22,0.97);z-index:30;
+  }
+  #startScreen h1{font-size:40px;color:#e94560;text-shadow:0 0 20px #e94560;margin-bottom:4px;}
+  #startScreen .sub{font-size:14px;color:#a29bfe;margin-bottom:8px;letter-spacing:2px;}
+  #startScreen p{color:#aaa;margin-bottom:24px;font-size:14px;}
+  .input-group{display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:24px;}
+  .input-group label{font-size:16px;color:#ccc;}
+  .input-group input{
+    width:120px;padding:10px;text-align:center;font-size:22px;font-weight:bold;
+    background:#1e2d3d;border:2px solid #e94560;color:#fff;border-radius:10px;outline:none;
+  }
+  .hint{font-size:12px;color:#555;}
+  #startBtn{padding:13px 50px;background:linear-gradient(135deg,#e94560,#a29bfe);border:none;color:#fff;font-size:18px;border-radius:30px;cursor:pointer;}
+  #startBtn:hover{opacity:0.88;}
+  #hud{position:fixed;top:0;left:0;right:65px;height:44px;display:none;align-items:center;justify-content:space-between;padding:6px 14px;background:rgba(0,0,0,0.65);backdrop-filter:blur(6px);z-index:10;}
+  #hud h1{font-size:16px;color:#e94560;text-shadow:0 0 8px #e94560;white-space:nowrap;}
+  #timer{font-size:15px;color:#ffd700;white-space:nowrap;}
+  #sidebar{position:fixed;top:0;right:0;width:65px;bottom:0;display:none;flex-direction:column;align-items:center;padding:6px 4px;gap:3px;overflow-y:auto;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);border-left:1px solid rgba(255,255,255,0.07);z-index:10;}
+  #sidebar::-webkit-scrollbar{width:2px;}
+  #sidebar::-webkit-scrollbar-thumb{background:#333;}
+  .sb-title{font-size:9px;color:#555;text-align:center;margin-bottom:2px;letter-spacing:1px;}
+  .sb-item{display:flex;align-items:center;gap:4px;padding:2px 4px;border-radius:5px;font-size:8px;font-weight:bold;border:1px solid transparent;width:56px;overflow:hidden;white-space:nowrap;}
+  .sb-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+  #overlay{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,0.85);z-index:20;}
+  #overlay.show{display:flex;}
+  #winCard{display:flex;flex-direction:column;align-items:center;background:rgba(10,15,30,0.95);border-radius:24px;padding:28px 44px;margin-bottom:20px;border:2px solid transparent;}
+  #winLabel{font-size:13px;letter-spacing:3px;color:#aaa;margin-bottom:10px;text-transform:uppercase;}
+  #winCanvas{border-radius:16px;margin-bottom:14px;image-rendering:pixelated;}
+  #msg{font-size:34px;font-weight:bold;text-shadow:0 0 24px currentColor;margin-bottom:4px;text-align:center;}
+  #submsg{font-size:14px;color:#aaa;text-align:center;}
+  #restartBtn{padding:12px 40px;background:linear-gradient(135deg,#e94560,#a29bfe);border:none;color:#fff;font-size:17px;border-radius:30px;cursor:pointer;margin-top:20px;}
+  #restartBtn:hover{opacity:0.88;}
+</style>
 </head>
 <body>
-  <div class="topbar">
-    <div class="pill">내 값: <b id="myVal">?</b></div>
-    <div class="pill">내 길이: <b id="myLen">?</b></div>
-    <div class="pill">부스터: <b id="boost">0</b>s</div>
-    <div class="pill">무적: <b id="shield">0</b>s</div>
-    <div class="pill">칼: <b id="sword">0</b>s</div>
-    <div class="pill">AI 수: <b id="aiAlive">9</b>/9</div>
-    <div class="pill">TPS: <b id="tps">6</b></div>
-    <button id="restart">재시작</button>
+<div id="startScreen">
+  <h1>🏁 Car Race Arena</h1>
+  <div class="sub">✨ SPRUNKI EDITION ✨</div>
+  <p>스프런키들의 미로 레이싱!</p>
+  <div class="input-group">
+    <label>자동차 대수</label>
+    <input type="number" id="carCount" value="6" min="1" max="30">
+    <span class="hint">1 ~ 30대</span>
   </div>
-
-  <div class="wrap">
-    <!-- ✅ 캔버스 실제 해상도도 크게 -->
-    <canvas id="c" width="560" height="560"></canvas>
+  <button id="startBtn" onclick="startGame()">게임 시작 🚗</button>
+</div>
+<div id="hud"><h1>🏁 Sprunki Race</h1><div id="timer">⏱ 5.0s</div></div>
+<div id="sidebar"></div>
+<canvas id="c"></canvas>
+<div id="overlay">
+  <div id="winCard">
+    <div id="winLabel">🏆 우승자</div>
+    <canvas id="winCanvas" width="180" height="200"></canvas>
+    <div id="msg"></div>
+    <div id="submsg"></div>
   </div>
-
-  <div class="hint">
-    조작: 터치 스와이프(상/하/좌/우).<br/>
-    먹이(연산+숫자): +, ×, ÷ 와 1~100. (-, % 없음 / 정수 처리).<br/>
-    뱀-뱀 충돌은 <b>머리끼리만</b> 판정합니다. (몸통은 서로 통과)<br/>
-    🛡무적 중 머리끼리 충돌하면 서로 <b>튕김</b> (이동 취소 + 방향 반전).<br/>
-    🗡칼은 어떤 수라도 <b>흡수</b>합니다(🛡보다 우선).<br/>
-    값 증가 시 😄, 감소 시 😢 이모티콘을 2초간 발사합니다.
-  </div>
-
-  <!-- Quiz overlay -->
-  <div class="overlay" id="quizOverlay">
-    <div class="card">
-      <p class="title">게임 시작 퀴즈</p>
-      <p class="sub">두 자리 수 사칙연산을 맞히면 그 <b>정답 값</b>으로 시작합니다. 틀리면 1부터 시작합니다.</p>
-      <div class="pill" style="display:inline-block;margin-bottom:10px;">
-        문제: <b id="quizQ">?</b>
-      </div>
-      <div class="row">
-        <input id="quizA" inputmode="numeric" placeholder="정답 입력(정수)" />
-        <button id="quizGo">시작</button>
-      </div>
-      <div class="small">※ ‘-’는 양수만 생성됩니다. ÷는 나누어떨어지도록 생성합니다.</div>
-    </div>
-  </div>
-
-  <!-- GameOver overlay -->
-  <div class="overlay" id="gameOverOverlay" style="display:none;">
-    <div class="card">
-      <p class="title">GAME OVER</p>
-      <p class="sub">재시작을 누르면 퀴즈부터 다시 시작합니다.</p>
-      <div class="row">
-        <button id="goRestart">재시작</button>
-      </div>
-    </div>
-  </div>
-
+  <button id="restartBtn" onclick="showStart()">다시 시작</button>
+</div>
 <script>
-(() => {
-  // ===================== Config =====================
-  const CANVAS = document.getElementById('c');
-  const ctx = CANVAS.getContext('2d');
+const canvas=document.getElementById('c');
+const ctx=canvas.getContext('2d');
+let W,H;
+const SIDEBAR_W=65,HUD_H=44;
 
-  /* ✅ 판을 더 크게: 21 -> 28 */
-  const GRID = 28;
-  const CELL = CANVAS.width / GRID;
+function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight;}
+window.addEventListener('resize',()=>{resize();if(gameStarted&&!gameOver){buildMaze();placeGoal();spawnCars();}});
 
-  const AI_COUNT = 9;
-  const TOTAL_SNAKES = 1 + AI_COUNT;
-
-  /* ✅ 속도 느리게: (1~10 중 4정도 체감) */
-  const BASE_TPS = 6;  // 이전 10
-  const MAX_TPS  = 9;  // 부스터 상한 제한
-
-  const OP_FOOD_MIN = 1;
-  const OP_FOOD_MAX = 100;
-
-  const POWERUP_SPAWN_INTERVAL = 5600; // ms (약간 여유)
-  const POWERUP_DURATION = 5000;       // ms
-  const AI_RESPAWN_DELAY = 2000;       // ms
-
-  const EMOJI_DURATION = 2000; // ms
-  const EMOJI_SPEED = 8;       // cells per second
-
-  const COLORS = {
-    bg: "#0f1620",
-    grid: "#223044",
-    foodBox: "#152434",
-    powerBox: "#193243",
-    text: "#e8eef7",
+if(!CanvasRenderingContext2D.prototype.roundRect){
+  CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h,r){
+    r=Math.min(r,w/2,h/2);
+    this.moveTo(x+r,y);this.lineTo(x+w-r,y);this.arcTo(x+w,y,x+w,y+r,r);
+    this.lineTo(x+w,y+h-r);this.arcTo(x+w,y+h,x+w-r,y+h,r);
+    this.lineTo(x+r,y+h);this.arcTo(x,y+h,x,y+h-r,r);
+    this.lineTo(x,y+r);this.arcTo(x,y,x+r,y,r);this.closePath();
   };
+}
 
-  // ===================== UI =====================
-  const myValEl = document.getElementById('myVal');
-  const myLenEl = document.getElementById('myLen');
-  const boostEl = document.getElementById('boost');
-  const shieldEl = document.getElementById('shield');
-  const swordEl = document.getElementById('sword');
-  const aiAliveEl = document.getElementById('aiAlive');
-  const tpsEl = document.getElementById('tps');
-  const restartBtn = document.getElementById('restart');
+// ── Sprunki character definitions (30 characters) ────────────────────────────
+const SPRUNKI = [
+  {name:'Raddy',   color:'#e82020'},
+  {name:'Oren',    color:'#ff8c00'},
+  {name:'Simon',   color:'#f5d000'},
+  {name:'OWAKCX',  color:'#4caf50'},
+  {name:'Vineria', color:'#2e7d32'},
+  {name:'Sky',     color:'#4dd0e1'},
+  {name:'Jevin',   color:'#1a237e'},
+  {name:'Durple',  color:'#8e24aa'},
+  {name:'Pinki',   color:'#f06292'},
+  {name:'Wenda',   color:'#eeeeee'},
+  {name:'Gray',    color:'#78909c'},
+  {name:'Black',   color:'#212121'},
+  {name:'Brud',    color:'#6d4c41'},
+  {name:'Tunner',  color:'#bcaaa4'},
+  {name:'Garnold', color:'#f9a825'},
+  {name:'Clukr',   color:'#9e9e9e'},
+  {name:'Funbot',  color:'#bdbdbd'},
+  // 추가 13개 캐릭터 (30대 지원)
+  {name:'Blazer',  color:'#ff5722'},
+  {name:'Frostie', color:'#80d8ff'},
+  {name:'Neon',    color:'#76ff03'},
+  {name:'Mystic',  color:'#ce93d8'},
+  {name:'Cobalt',  color:'#1565c0'},
+  {name:'Amber',   color:'#ffb300'},
+  {name:'Crimson', color:'#c62828'},
+  {name:'Teal',    color:'#00897b'},
+  {name:'Coral',   color:'#ff7043'},
+  {name:'Indigo',  color:'#3949ab'},
+  {name:'Lime',    color:'#c6ef00'},
+  {name:'Rose',    color:'#e91e63'},
+  {name:'Copper',  color:'#bf6b00'},
+];
 
-  const quizOverlay = document.getElementById('quizOverlay');
-  const quizQEl = document.getElementById('quizQ');
-  const quizAEl = document.getElementById('quizA');
-  const quizGoBtn = document.getElementById('quizGo');
+// ── Draw each Sprunki ─────────────────────────────────────────────────────────
+function drawSprunkiHead(c, x, y, size, ctx2){
+  const k=ctx2||ctx;
+  const s=size/60;
+  k.save();
+  k.translate(x,y);
 
-  const gameOverOverlay = document.getElementById('gameOverOverlay');
-  const goRestartBtn = document.getElementById('goRestart');
-
-  // ===================== Helpers =====================
-  const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
-  const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
-  const key = (x, y) => `${x},${y}`;
-  const nowMs = () => performance.now();
-  function idiv(a, b) { return b === 0 ? a : (a / b) | 0; }
-
-  function applyOpFood(val, op, n) {
-    if (op === '+') return val + n;
-    if (op === '×') return val * n;
-    if (op === '÷') return idiv(val, n);
-    return val;
-  }
-
-  function colorForValue(v) {
-    const t = Math.log10(Math.max(1, v) + 1);
-    const hue = (200 + t * 90) % 360;
-    const sat = 75;
-    const light = clamp(45 + t * 10, 45, 65);
-    return `hsl(${hue} ${sat}% ${light}%)`;
-  }
-
-  function targetLengthForValue(v) {
-    const t = Math.log10(Math.max(1, v) + 1);
-    return clamp(4 + Math.floor(t * 4), 4, 18); // 판 커졌으니 상한도 살짝
-  }
-
-  const DIRS = [{x:1,y:0},{x:-1,y:0},{x:0,y:1},{x:0,y:-1}];
-  const opposite = (d) => ({x: -d.x, y: -d.y});
-
-  // ===================== State =====================
-  let snakes = [];
-  let foods = [];
-  let powerups = [];
-  let projectiles = [];
-
-  let gameRunning = false;
-  let gameOver = false;
-
-  let tps = BASE_TPS;
-  let acc = 0;
-  let lastTs = nowMs();
-  let lastPowerSpawnAt = 0;
-
-  let quiz = null;
-
-  // ===================== Spawning helpers =====================
-  function occupiedSet() {
-    const occ = new Set();
-    for (const s of snakes) {
-      if (!s.alive) continue;
-      for (const p of s.body) occ.add(key(p.x, p.y));
+  switch(c.name){
+    case 'Raddy': {
+      k.fillStyle='#e82020';
+      k.beginPath();k.ellipse(0,0,22*s,26*s,0,0,Math.PI*2);k.fill();
+      k.fillStyle='#e82020';
+      for(let i=0;i<5;i++){
+        const a=-Math.PI/2+((i-2)*0.38);
+        k.save();k.translate(Math.cos(a)*19*s,Math.sin(a)*19*s);k.rotate(a+Math.PI/2);
+        k.beginPath();k.moveTo(0,0);k.lineTo(-5*s,-14*s);k.lineTo(5*s,-14*s);k.closePath();k.fill();k.restore();
+      }
+      k.fillStyle='#fff';
+      k.beginPath();k.ellipse(-7*s,-1*s,7*s,7*s,0,0,Math.PI*2);k.fill();
+      k.beginPath();k.ellipse(7*s,-1*s,7*s,7*s,0,0,Math.PI*2);k.fill();
+      k.fillStyle='#111';
+      k.beginPath();k.ellipse(-7*s,-1*s,5*s,5*s,0,0,Math.PI*2);k.fill();
+      k.beginPath();k.ellipse(7*s,-1*s,5*s,5*s,0,0,Math.PI*2);k.fill();
+      k.fillStyle='#e82020';
+      k.beginPath();k.rect(-15*s,-9*s,30*s,8*s);k.fill();
+      k.beginPath();k.ellipse(-7*s,-1*s,7.5*s,4*s,0,Math.PI,Math.PI*2);k.fill();
+      k.beginPath();k.ellipse(7*s,-1*s,7.5*s,4*s,0,Math.PI,Math.PI*2);k.fill();
+      k.strokeStyle='#111';k.lineWidth=2*s;k.lineCap='round';
+      k.beginPath();k.arc(0,12*s,5*s,Math.PI+0.3,-0.3,true);k.stroke();
+      break;
     }
-    for (const f of foods) occ.add(key(f.x, f.y));
-    for (const p of powerups) occ.add(key(p.x, p.y));
-    return occ;
-  }
-
-  function findEmptyCell(maxTry=1200) {
-    const occ = occupiedSet();
-    for (let i=0;i<maxTry;i++){
-      const x = randInt(0, GRID-1);
-      const y = randInt(0, GRID-1);
-      if (!occ.has(key(x,y))) return {x,y};
+    case 'Oren': {
+      k.fillStyle='#ff8c00';
+      k.beginPath();k.ellipse(0,0,22*s,24*s,0,0,Math.PI*2);k.fill();
+      k.fillStyle='#d97000';
+      k.beginPath();k.moveTo(-4*s,-22*s);k.lineTo(0,-34*s);k.lineTo(4*s,-22*s);k.closePath();k.fill();
+      k.strokeStyle='#ff8c00';k.lineWidth=3*s;k.lineCap='round';
+      k.beginPath();k.moveTo(-8*s,-22*s);k.lineTo(-16*s,-36*s);k.stroke();
+      k.beginPath();k.moveTo(8*s,-22*s);k.lineTo(16*s,-36*s);k.stroke();
+      k.fillStyle='#ff8c00';
+      k.beginPath();k.arc(-16*s,-37*s,4*s,0,Math.PI*2);k.fill();
+      k.beginPath();k.arc(16*s,-37*s,4*s,0,Math.PI*2);k.fill();
+      k.strokeStyle='#f0c060';k.lineWidth=5*s;
+      k.beginPath();k.arc(0,-5*s,24*s,Math.PI+0.2,-0.2,false);k.stroke();
+      k.fillStyle='#f0c060';
+      k.beginPath();k.ellipse(-23*s,-5*s,6*s,8*s,0,0,Math.PI*2);k.fill();
+      k.beginPath();k.ellipse(23*s,-5*s,6*s,8*s,0,0,Math.PI*2);k.fill();
+      k.fillStyle='#fff';
+      k.beginPath();k.ellipse(-7*s,0,7*s,7*s,0,0,Math.PI*2);k.fill();
+      k.beginPath();k.ellipse(7*s,0,7*s,7*s,0,0,Math.PI*2);k.fill();
+      k.fillStyle='#111';
+      k.beginPath();k.ellipse(-7*s,1*s,5*s,5*s,0,0,Math.PI*2);k.fill();
+      k.beginPath();k.ellipse(7*s,1*s,5*s,5*s,0,0,Math.PI*2);k.fill();
+      k.fillStyle='#ff8c00';
+      k.beginPath();k.ellipse(-7*s,-2*s,7.5*s,4.5*s,0,Math.PI,Math.PI*2);k.fill();
+      k.beginPath();k.ellipse(7*s,-2*s,7.5*s,4.5*s,0,Math.PI,Math.PI*2);k.fill();
+      k.strokeStyle='#111';k.lineWidth=2*s;
+      k.beginPath();k.arc(0,12*s,5*s,0.2,Math.PI-0.2);k.stroke();
+      break;
     }
-    return {x: randInt(0, GRID-1), y: randInt(0, GRID-1)};
-  }
-
-  // ===================== Snake factory =====================
-  function makeSnake(id, isPlayer, startValue) {
-    const pos = findEmptyCell();
-    const dir = isPlayer ? {x:1,y:0} : DIRS[randInt(0,3)];
-    const len = targetLengthForValue(startValue);
-
-    const body = [];
-    for (let i=0;i<len;i++){
-      body.push({
-        x: clamp(pos.x - i*dir.x, 0, GRID-1),
-        y: clamp(pos.y - i*dir.y, 0, GRID-1)
+    case 'Simon': {
+      k.fillStyle='#f5d000';
+      k.beginPath();k.ellipse(0,0,22*s,24*s,0,0,Math.PI*2);k.fill();
+      k.strokeStyle='#f5d000';k.lineWidth=3*s;
+      k.beginPath();k.moveTo(-7*s,-23*s);k.lineTo(-7*s,-38*s);k.stroke();
+      k.beginPath();k.moveTo(7*s,-23*s);k.lineTo(7*s,-38*s);k.stroke();
+      k.fillStyle='#f5aa00';
+      k.beginPath();k.arc(-7*s,-40*s,5*s,0,Math.PI*2);k.fill();
+      k.beginPath();k.arc(7*s,-40*s,5*s,0,Math.PI*2);k.fill();
+      k.fillStyle='#fff';
+      k.beginPath();k.ellipse(-7*s,-1*s,8*s,9*s,0,0,Math.PI*2);k.fill();
+      k.beginPath();k.ellipse(7*s,-1*s,8*s,9*s,0,0,Math.PI*2);k.fill();
+      k.fillStyle='#111';
+      k.beginPath();k.ellipse(-7*s,-1*s,6*s,6*s,0,0,Math.PI*2);k.fill();
+      k.beginPath();k.ellipse(7*s,-1*s,6*s,6*s,0,0,Math.PI*2);k.fill();
+      k.fillStyle='#f5d000';
+      k.beginPath();k.ellipse(-7*s,-4*s,8.5*s,5*s,0,Math.PI,Math.PI*2);k.fill();
+      k.beginPath();k.ellipse(7*s,-4*s,8.5*s,5*s,0,Math.PI,Math.PI*2);k.fill();
+      k.strokeStyle='#111';k.lineWidth=2*s;
+      k.beginPath();k.arc(0,12*s,4*s,0.3,Math.PI-0.3);k.stroke();
+      break;
+    }
+    case 'OWAKCX': {
+      k.fillStyle='#4caf50';
+      k.beginPath();k.ellipse(0,0,22*s,24*s,0,0,Math.PI*2);k.fill();
+      k.fillStyle='#388e3c';
+      [-20,-12,0,12,20].forEach((px,i)=>{
+        k.beginPath();k.moveTo(px*s,-20*s);k.lineTo((px-5)*s,-32*s-(i%2)*8*s);k.lineTo((px+5)*s,-32*s-(i%2)*8*s);k.closePath();k.fill();
       });
+      k.fillStyle='#fff';
+      k.beginPath();k.ellipse(-8*s,-1*s,7*s,8*s,0,0,Math.PI*2);k.fill();
+      k.beginPath();k.ellipse(8*s,-1*s,6*s,7*s,0,0,Math.PI*2);k.fill();
+      k.fillStyle='#111';
+      k.beginPath();k.ellipse(-8*s,-1*s,5*s,5*s,0,0,Math.PI*2);k.fill();
+      k.beginPath();k.ellipse(8*s,0,4*s,4*s,0,0,Math.PI*2);k.fill();
+      k.fillStyle='#4caf50';
+      k.beginPath();k.ellipse(-8*s,-4*s,7.5*s,4.5*s,0,Math.PI,Math.PI*2);k.fill();
+      k.beginPath();k.ellipse(8*s,-3*s,6.5*s,4*s,0,Math.PI,Math.PI*2);k.fill();
+      k.strokeStyle='#111';k.lineWidth=2*s;
+      k.beginPath();k.moveTo(-5*s,12*s);k.lineTo(5*s,12*s);k.stroke();
+      break;
     }
-
-    return {
-      id,
-      isPlayer,
-      body,
-      dir: {...dir},
-      nextDir: {...dir},
-      value: startValue,
-      boostMs: 0,
-      shieldMs: 0,
-      swordMs: 0,
-      aiThinkCooldown: 0,
-      respawnMs: 0,
-      alive: true
-    };
-  }
-
-  function resetWithPlayerStartValue(v) {
-    snakes = [];
-    foods = [];
-    powerups = [];
-    projectiles = [];
-
-    snakes.push(makeSnake(0, true, v));
-    for (let i=1; i<TOTAL_SNAKES; i++) {
-      snakes.push(makeSnake(i, false, randInt(1,10)));
-    }
-
-    // 판 커졌으니 먹이도 조금 더
-    for (let i=0;i<12;i++) spawnOpFood();
-
-    tps = BASE_TPS;
-    acc = 0;
-    lastTs = nowMs();
-    lastPowerSpawnAt = nowMs();
-
-    gameRunning = true;
-    gameOver = false;
-    gameOverOverlay.style.display = "none";
-
-    ui();
-    draw();
-  }
-
-  // ===================== Foods / Powerups =====================
-  function spawnOpFood() {
-    const ops = ['+','×','÷'];
-    const pos = findEmptyCell();
-    foods.push({
-      x: pos.x, y: pos.y,
-      op: ops[randInt(0, ops.length-1)],
-      n: randInt(OP_FOOD_MIN, OP_FOOD_MAX)
-    });
-  }
-
-  function spawnPowerup() {
-    const kinds = ['boost','shield','sword'];
-    const pos = findEmptyCell();
-    powerups.push({x: pos.x, y: pos.y, kind: kinds[randInt(0,2)]});
-  }
-
-  // ===================== Emoji projectiles =====================
-  function fireEmoji(snake, emoji) {
-    if (!snake.alive) return;
-    const head = snake.body[0];
-    projectiles.push({
-      x: head.x + 0.5,
-      y: head.y + 0.5,
-      vx: snake.dir.x * EMOJI_SPEED,
-      vy: snake.dir.y * EMOJI_SPEED,
-      emoji,
-      lifeMs: EMOJI_DURATION
-    });
-  }
-
-  function onValueChange(snake, prev, next) {
-    if (next > prev) fireEmoji(snake, "😄");
-    else if (next < prev) fireEmoji(snake, "😢");
-  }
-
-  // ===================== Input =====================
-  function setPlayerDir(x,y){
-    const p = snakes[0];
-    if (!p || !p.alive) return;
-    if (x === -p.dir.x && y === -p.dir.y) return;
-    p.nextDir = {x,y};
-  }
-
-  let touchStart = null;
-  CANVAS.addEventListener('pointerdown', (e) => {
-    CANVAS.setPointerCapture(e.pointerId);
-    touchStart = {x: e.clientX, y: e.clientY};
-  }, {passive:true});
-
-  CANVAS.addEventListener('pointermove', (e) => {
-    if (!touchStart || !gameRunning || gameOver) return;
-    const dx = e.clientX - touchStart.x;
-    const dy = e.clientY - touchStart.y;
-    const absX = Math.abs(dx), absY = Math.abs(dy);
-    const TH = 14;
-    if (absX < TH && absY < TH) return;
-
-    if (absX > absY) setPlayerDir(dx > 0 ? 1 : -1, 0);
-    else setPlayerDir(0, dy > 0 ? 1 : -1);
-
-    touchStart = {x: e.clientX, y: e.clientY};
-  }, {passive:true});
-
-  CANVAS.addEventListener('pointerup', () => { touchStart = null; }, {passive:true});
-  CANVAS.addEventListener('pointercancel', () => { touchStart = null; }, {passive:true});
-
-  // ===================== AI =====================
-  function aiChooseDirection(s) {
-    if (!s.alive) return;
-    const head = s.body[0];
-
-    let small = null, smallD = 1e9;
-    let big = null, bigD = 1e9;
-
-    for (const o of snakes) {
-      if (!o.alive || o.id === s.id) continue;
-      const oh = o.body[0];
-      const d = Math.abs(oh.x - head.x) + Math.abs(oh.y - head.y);
-      if (o.value < s.value && d < smallD) { smallD = d; small = oh; }
-      if (o.value > s.value && d < bigD) { bigD = d; big = oh; }
-    }
-
-    let best = s.dir;
-    let bestScore = -1e18;
-
-    for (const d of DIRS) {
-      if (d.x === -s.dir.x && d.y === -s.dir.y) continue;
-      const nx = head.x + d.x;
-      const ny = head.y + d.y;
-      if (nx < 0 || ny < 0 || nx >= GRID || ny >= GRID) continue;
-
-      // (선택) 자기 몸 충돌 회피 유지
-      if (s.body.some(p => p.x === nx && p.y === ny)) continue;
-
-      let score = 0;
-
-      if (small) {
-        const dist = Math.abs(small.x - nx) + Math.abs(small.y - ny);
-        score += (60 - dist);
-      }
-      if (big) {
-        const dist = Math.abs(big.x - nx) + Math.abs(big.y - ny);
-        score += clamp(dist - 3, -80, 80) * 1.2;
-      }
-
-      // foods/powerups attraction
-      let fd = 1e9, pd = 1e9, puKind = null;
-      for (const f of foods) {
-        const dist = Math.abs(f.x - nx) + Math.abs(f.y - ny);
-        if (dist < fd) fd = dist;
-      }
-      for (const p of powerups) {
-        const dist = Math.abs(p.x - nx) + Math.abs(p.y - ny);
-        if (dist < pd) { pd = dist; puKind = p.kind; }
-      }
-      score += (24 - fd) * 0.22;
-
-      if (puKind) {
-        let w = 0.55;
-        if (puKind === 'sword') w = 1.0;
-        if (puKind === 'shield') w = 0.8;
-        score += (20 - pd) * w;
-      }
-
-      score += (Math.random() - 0.5) * 0.6;
-      if (score > bestScore) { bestScore = score; best = d; }
-    }
-
-    s.nextDir = {...best};
-  }
-
-  // ===================== Timers & Loop =====================
-  function stepTimers(dtMs) {
-    for (const s of snakes) {
-      if (s.alive) {
-        s.boostMs = Math.max(0, s.boostMs - dtMs);
-        s.shieldMs = Math.max(0, s.shieldMs - dtMs);
-        s.swordMs = Math.max(0, s.swordMs - dtMs);
-        s.aiThinkCooldown = Math.max(0, s.aiThinkCooldown - dtMs);
-      } else {
-        s.respawnMs = Math.max(0, s.respawnMs - dtMs);
-        if (!s.isPlayer && s.respawnMs === 0) respawnAI(s);
-      }
-    }
-
-    for (const pr of projectiles) pr.lifeMs -= dtMs;
-    projectiles = projectiles.filter(p => p.lifeMs > 0);
-
-    const dt = dtMs / 1000;
-    for (const pr of projectiles) {
-      pr.x += pr.vx * dt;
-      pr.y += pr.vy * dt;
-    }
-  }
-
-  function tick() {
-    if (!gameRunning || gameOver) return;
-
-    const player = snakes[0];
-
-    /* ✅ 부스터 완화: 1.35 -> 1.20, 상한 MAX_TPS=9 */
-    const boostFactor = (player && player.alive && player.boostMs > 0) ? 1.20 : 1.0;
-    tps = clamp(Math.round(BASE_TPS * boostFactor), BASE_TPS, MAX_TPS);
-
-    // AI think
-    for (let i=1;i<snakes.length;i++){
-      const s = snakes[i];
-      if (!s.alive) continue;
-      if (s.aiThinkCooldown <= 0) {
-        aiChooseDirection(s);
-        s.aiThinkCooldown = 150; // 조금 더 느긋하게
-      }
-    }
-
-    // commit dirs + compute next heads
-    const nextHeads = new Map();
-    for (const s of snakes) {
-      if (!s.alive) continue;
-      if (s.nextDir.x === -s.dir.x && s.nextDir.y === -s.dir.y) s.nextDir = {...s.dir};
-      s.dir = {...s.nextDir};
-      const h = s.body[0];
-      nextHeads.set(s.id, {x: h.x + s.dir.x, y: h.y + s.dir.y});
-    }
-
-    // wall/self collision
-    for (const s of snakes) {
-      if (!s.alive) continue;
-      const nh = nextHeads.get(s.id);
-      if (nh.x < 0 || nh.y < 0 || nh.x >= GRID || nh.y >= GRID) {
-        killSnake(s, "wall");
-        continue;
-      }
-      if (s.body.some(p => p.x === nh.x && p.y === nh.y)) {
-        killSnake(s, "self");
-      }
-    }
-
-    // head-to-head only
-    const posMap = new Map();
-    for (const s of snakes) {
-      if (!s.alive) continue;
-      const nh = nextHeads.get(s.id);
-      const k = key(nh.x, nh.y);
-      if (!posMap.has(k)) posMap.set(k, []);
-      posMap.get(k).push(s.id);
-    }
-
-    const cancelledMove = new Set();
-
-    for (const [k, ids] of posMap.entries()) {
-      if (ids.length < 2) continue;
-
-      const contenders = ids.map(id => snakes[id]).filter(s => s && s.alive);
-
-      // sword wins & absorbs all
-      const sworders = contenders.filter(s => s.swordMs > 0);
-      if (sworders.length > 0) {
-        sworders.sort((a,b) => b.value - a.value);
-        const winner = sworders[0];
-        for (const s of contenders) {
-          if (s.id === winner.id) continue;
-          absorb(winner, s);
-          cancelledMove.add(s.id);
-        }
-        continue;
-      }
-
-      // shield => bounce all (no sword present)
-      const hasShield = contenders.some(s => s.shieldMs > 0);
-      if (hasShield) {
-        for (const s of contenders) {
-          cancelledMove.add(s.id);
-          s.nextDir = opposite(s.dir);
-        }
-        continue;
-      }
-
-      // otherwise: biggest absorbs, tie => bounce
-      contenders.sort((a,b) => b.value - a.value);
-      const topV = contenders[0].value;
-      const topOnes = contenders.filter(s => s.value === topV);
-
-      if (topOnes.length >= 2) {
-        for (const s of contenders) {
-          cancelledMove.add(s.id);
-          s.nextDir = opposite(s.dir);
-        }
-      } else {
-        const winner = contenders[0];
-        for (let i=1;i<contenders.length;i++){
-          absorb(winner, contenders[i]);
-          cancelledMove.add(contenders[i].id);
-        }
-      }
-    }
-
-    // apply movement for non-cancelled survivors
-    for (const s of snakes) {
-      if (!s.alive) continue;
-      if (cancelledMove.has(s.id)) continue;
-
-      const nh = nextHeads.get(s.id);
-      s.body.unshift({x: nh.x, y: nh.y});
-
-      // eat op food
-      const fi = foods.findIndex(f => f.x === nh.x && f.y === nh.y);
-      if (fi >= 0) {
-        const f = foods[fi];
-        foods.splice(fi, 1);
-
-        const prev = s.value;
-        const next = applyOpFood(s.value, f.op, f.n);
-        s.value = next;
-        onValueChange(s, prev, next);
-
-        spawnOpFood();
-      }
-
-      // eat powerup
-      const pi = powerups.findIndex(p => p.x === nh.x && p.y === nh.y);
-      if (pi >= 0) {
-        const p = powerups[pi];
-        powerups.splice(pi, 1);
-        if (p.kind === 'boost') s.boostMs = POWERUP_DURATION;
-        if (p.kind === 'shield') s.shieldMs = POWERUP_DURATION;
-        if (p.kind === 'sword') s.swordMs = POWERUP_DURATION;
-      }
-
-      const targetLen = targetLengthForValue(s.value);
-      while (s.body.length > targetLen) s.body.pop();
-      while (s.body.length < targetLen) {
-        const tail = s.body[s.body.length-1];
-        s.body.push({x: tail.x, y: tail.y});
-      }
-    }
-
-    // spawn powerup
-    const t = nowMs();
-    if (t - lastPowerSpawnAt > POWERUP_SPAWN_INTERVAL && powerups.length < 4) {
-      spawnPowerup();
-      lastPowerSpawnAt = t;
-    }
-
-    ui();
-    draw();
-  }
-
-  // ===================== Combat / Death =====================
-  function absorb(winner, loser) {
-    if (!winner.alive || !loser.alive) return;
-
-    const prev = winner.value;
-    winner.value = winner.value + loser.value;
-    onValueChange(winner, prev, winner.value);
-
-    const targetLen = targetLengthForValue(winner.value);
-    while (winner.body.length < targetLen) {
-      const tail = winner.body[winner.body.length-1];
-      winner.body.push({x: tail.x, y: tail.y});
-    }
-    while (winner.body.length > targetLen) winner.body.pop();
-
-    killSnake(loser, "absorbed");
-  }
-
-  function killSnake(s, reason) {
-    if (!s.alive) return;
-
-    if (s.isPlayer) {
-      s.alive = false;
-      gameOver = true;
-      gameRunning = false;
-      draw();
-      gameOverOverlay.style.display = "flex";
-      return;
-    }
-
-    s.alive = false;
-    s.respawnMs = AI_RESPAWN_DELAY;
-
-    const prev = s.value;
-    s.value = 1;
-    onValueChange(s, prev, s.value);
-
-    s.boostMs = 0;
-    s.shieldMs = 0;
-    s.swordMs = 0;
-    s.body = [];
-  }
-
-  function respawnAI(s) {
-    s.alive = true;
-    s.respawnMs = 0;
-    s.value = randInt(1, 10);
-    s.boostMs = 0; s.shieldMs = 0; s.swordMs = 0;
-
-    const pos = findEmptyCell();
-    s.dir = DIRS[randInt(0,3)];
-    s.nextDir = {...s.dir};
-
-    const len = targetLengthForValue(s.value);
-    s.body = [];
-    for (let i=0;i<len;i++){
-      s.body.push({
-        x: clamp(pos.x - i*s.dir.x, 0, GRID-1),
-        y: clamp(pos.y - i*s.dir.y, 0, GRID-1)
+    case 'Vineria': {
+      k.fillStyle='#2e7d32';
+      k.beginPath();k.ellipse(0,0,22*s,24*s,0,0,Math.PI*2);k.fill();
+      k.fillStyle='#1b5e20';
+      k.beginPath();k.ellipse(0,-20*s,26*s,20*s,0,0,Math.PI*2);k.fill();
+      k.fillStyle='#2e7d32';
+      k.beginPath();k.ellipse(-8*s,-10*s,8*s,10*s,0.3,0,Math.PI*2);k.fill();
+      k.beginPath();k.ellipse(8*s,-10*s,8*s,10*s,-0.3,0,Math.PI*2);k.fill();
+      ['#ff80ab','#f48fb1','#f8bbd0'].forEach((fc,i)=>{
+        const fx=(-12+i*12)*s,fy=-32*s;
+        k.fillStyle=fc;
+        for(let p=0;p<5;p++){const pa=p*Math.PI*2/5;k.beginPath();k.ellipse(fx+Math.cos(pa)*5*s,fy+Math.sin(pa)*5*s,3.5*s,3.5*s,0,0,Math.PI*2);k.fill();}
+        k.fillStyle='#fff176';k.beginPath();k.arc(fx,fy,3*s,0,Math.PI*2);k.fill();
       });
+      k.fillStyle='#fff';
+      k.beginPath();k.ellipse(-7*s,-1*s,7*s,7*s,0,0,Math.PI*2);k.fill();
+      k.beginPath();k.ellipse(7*s,-1*s,7*s,7*s,0,0,Math.PI*2);k.fill();
+      k.fillStyle='#111';
+      k.beginPath();k.ellipse(-7*s,-1*s,5*s,5*s,0,0,Math.PI*2);k.fill();
+      k.beginPath();k.ellipse(7*s,-1*s,5*s,5*s,0,0,Math.PI*2);k.fill();
+      k.fillStyle='#2e7d32';
+      k.beginPath();k.ellipse(-7*s,-4*s,7.5*s,4*s,0,Math.PI,Math.PI*2);k.fill();
+      k.beginPath();k.ellipse(7*s,-4*s,7.5*s,4*s,0,Math.PI,Math.PI*2);k.fill();
+      k.strokeStyle='#111';k.lineWidth=1.5*s;
+      k.beginPath();k.arc(0,12*s,5*s,0.3,Math.PI-0.3);k.stroke();
+      break;
     }
-  }
-
-  // ===================== Draw =====================
-  function roundRect(x, y, w, h, r) {
-    ctx.beginPath();
-    ctx.moveTo(x+r, y);
-    ctx.arcTo(x+w, y, x+w, y+h, r);
-    ctx.arcTo(x+w, y+h, x, y+h, r);
-    ctx.arcTo(x, y+h, x, y, r);
-    ctx.arcTo(x, y, x+w, y, r);
-    ctx.closePath();
-  }
-
-  function drawGrid() {
-    ctx.globalAlpha = 0.22;
-    ctx.strokeStyle = COLORS.grid;
-    ctx.lineWidth = 1;
-    for (let i=1;i<GRID;i++){
-      ctx.beginPath(); ctx.moveTo(i*CELL, 0); ctx.lineTo(i*CELL, CANVAS.height); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(0, i*CELL); ctx.lineTo(CANVAS.width, i*CELL); ctx.stroke();
+    case 'Sky': {
+      k.fillStyle='#4dd0e1';
+      k.beginPath();k.ellipse(0,0,22*s,24*s,0,0,Math.PI*2);k.fill();
+      k.beginPath();k.arc(-18*s,-18*s,9*s,0,Math.PI*2);k.fill();
+      k.beginPath();k.arc(18*s,-18*s,9*s,0,Math.PI*2);k.fill();
+      k.fillStyle='#80deea';
+      k.beginPath();k.arc(-18*s,-18*s,5*s,0,Math.PI*2);k.fill();
+      k.beginPath();k.arc(18*s,-18*s,5*s,0,Math.PI*2);k.fill();
+      k.fillStyle='#fff';
+      k.beginPath();k.ellipse(-7*s,-1*s,7*s,7*s,0,0,Math.PI*2);k.fill();
+      k.beginPath();k.ellipse(7*s,-1*s,7*s,7*s,0,0,Math.PI*2);k.fill();
+      k.fillStyle='#111';
+      k.beginPath();k.ellipse(-7*s,-1*s,5*s,5*s,0,0,Math.PI*2);k.fill();
+      k.beginPath();k.ellipse(7*s,-1*s,5*s,5*s,0,0,Math.PI*2);k.fill();
+      k.fillStyle='#4dd0e1';
+      k.beginPath();k.ellipse(-7*s,-4*s,7.5*s,4*s,0,Math.PI,Math.PI*2);k.fill();
+      k.beginPath();k.ellipse(7*s,-4*s,7.5*s,4*s,0,Math.PI,Math.PI*2);k.fill();
+      k.strokeStyle='#111';k.lineWidth=2*s;
+      k.beginPath();k.arc(0,12*s,5*s,0.2,Math.PI-0.2);k.stroke();
+      break;
     }
-    ctx.globalAlpha = 1;
-  }
-
-  function draw() {
-    ctx.clearRect(0,0,CANVAS.width,CANVAS.height);
-
-    ctx.fillStyle = COLORS.bg;
-    roundRect(0,0,CANVAS.width,CANVAS.height,16);
-    ctx.fill();
-
-    drawGrid();
-
-    // foods
-    for (const f of foods) {
-      ctx.fillStyle = COLORS.foodBox;
-      const px = f.x*CELL+2, py = f.y*CELL+2;
-      roundRect(px, py, CELL-4, CELL-4, 10);
-      ctx.fill();
-      ctx.fillStyle = COLORS.text;
-      ctx.font = "bold 14px system-ui";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(`${f.op}${f.n}`, (f.x+0.5)*CELL, (f.y+0.5)*CELL);
+    case 'Jevin': {
+      k.fillStyle='#1a237e';
+      k.beginPath();k.ellipse(0,0,24*s,28*s,0,0,Math.PI*2);k.fill();
+      k.fillStyle='#0d1757';
+      k.beginPath();k.ellipse(0,-8*s,22*s,18*s,0,0,Math.PI*2);k.fill();
+      k.fillStyle='#1a237e';
+      k.beginPath();k.ellipse(0,2*s,16*s,16*s,0,0,Math.PI*2);k.fill();
+      k.fillStyle='#fff';
+      k.beginPath();k.ellipse(-6*s,0,7*s,7*s,0,0,Math.PI*2);k.fill();
+      k.beginPath();k.ellipse(6*s,0,7*s,7*s,0,0,Math.PI*2);k.fill();
+      k.fillStyle='#111';
+      k.beginPath();k.ellipse(-6*s,0,5*s,5*s,0,0,Math.PI*2);k.fill();
+      k.beginPath();k.ellipse(6*s,0,5*s,5*s,0,0,Math.PI*2);k.fill();
+      k.fillStyle='#1a237e';
+      k.beginPath();k.ellipse(-6*s,-3*s,7.5*s,4.5*s,0,Math.PI,Math.PI*2);k.fill();
+      k.beginPath();k.ellipse(6*s,-3*s,7.5*s,4.5*s,0,Math.PI,Math.PI*2);k.fill();
+      k.strokeStyle='#111';k.lineWidth=2*s;
+      k.beginPath();k.moveTo(-4*s,10*s);k.lineTo(4*s,10*s);k.stroke();
+      break;
     }
-
-    // powerups
-    for (const p of powerups) {
-      ctx.fillStyle = COLORS.powerBox;
-      const px = p.x*CELL+2, py = p.y*CELL+2;
-      roundRect(px, py, CELL-4, CELL-4, 10);
-      ctx.fill();
-      ctx.fillStyle = COLORS.text;
-      ctx.font = "bold 16px system-ui";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      const icon = p.kind === 'boost' ? "🚀" : (p.kind === 'shield' ? "🛡" : "🗡");
-      ctx.fillText(icon, (p.x+0.5)*CELL, (p.y+0.5)*CELL+1);
+    case 'Durple': {
+      k.fillStyle='#8e24aa';
+      k.beginPath();k.ellipse(0,0,22*s,24*s,0,0,Math.PI*2);k.fill();
+      k.fillStyle='#7b1fa2';
+      k.beginPath();k.moveTo(-5*s,-22*s);k.lineTo(0,-38*s);k.lineTo(5*s,-22*s);k.closePath();k.fill();
+      k.beginPath();k.moveTo(-22*s,-5*s);k.lineTo(-38*s,-14*s);k.lineTo(-22*s,5*s);k.closePath();k.fill();
+      k.beginPath();k.moveTo(22*s,-5*s);k.lineTo(38*s,-14*s);k.lineTo(22*s,5*s);k.closePath();k.fill();
+      k.fillStyle='#fff';
+      k.beginPath();k.ellipse(-7*s,-1*s,7*s,8*s,0,0,Math.PI*2);k.fill();
+      k.beginPath();k.ellipse(7*s,-1*s,7*s,8*s,0,0,Math.PI*2);k.fill();
+      k.fillStyle='#111';
+      k.beginPath();k.ellipse(-7*s,-1*s,5*s,6*s,0,0,Math.PI*2);k.fill();
+      k.beginPath();k.ellipse(7*s,-1*s,5*s,6*s,0,0,Math.PI*2);k.fill();
+      k.fillStyle='#8e24aa';
+      k.beginPath();k.ellipse(-7*s,-4*s,7.5*s,4.5*s,0,Math.PI,Math.PI*2);k.fill();
+      k.beginPath();k.ellipse(7*s,-4*s,7.5*s,4.5*s,0,Math.PI,Math.PI*2);k.fill();
+      k.strokeStyle='#111';k.lineWidth=2*s;
+      k.beginPath();k.moveTo(-5*s,12*s);k.lineTo(5*s,12*s);k.stroke();
+      break;
     }
-
-    // snakes
-    for (const s of snakes) {
-      if (!s.alive) continue;
-      const col = colorForValue(s.value);
-      const headCol = s.isPlayer ? "hsl(210 90% 60%)" : col;
-
-      for (let i=s.body.length-1; i>=0; i--) {
-        const b = s.body[i];
-        const pad = (i===0 ? 2 : 3);
-
-        if (i===0) {
-          ctx.fillStyle = headCol;
-          roundRect(b.x*CELL+pad, b.y*CELL+pad, CELL-2*pad, CELL-2*pad, 10);
-          ctx.fill();
-
-          const icons = [];
-          if (s.boostMs>0) icons.push("🚀");
-          if (s.shieldMs>0) icons.push("🛡");
-          if (s.swordMs>0) icons.push("🗡");
-          if (icons.length) {
-            ctx.font = "12px system-ui";
-            ctx.textAlign = "left";
-            ctx.textBaseline = "top";
-            ctx.fillStyle = "#0b0f14";
-            ctx.fillText(icons.join(""), b.x*CELL+4, b.y*CELL+4);
-          }
-
-          ctx.font = "bold 11px system-ui";
-          ctx.textAlign = "center";
-          ctx.textBaseline = "middle";
-          ctx.fillStyle = "#0b0f14";
-          ctx.fillText(String(s.value), (b.x+0.5)*CELL, (b.y+0.55)*CELL);
-        } else {
-          ctx.fillStyle = col;
-          roundRect(b.x*CELL+pad, b.y*CELL+pad, CELL-2*pad, CELL-2*pad, 10);
-          ctx.fill();
-        }
+    case 'Pinki': {
+      k.fillStyle='#f06292';
+      k.beginPath();k.ellipse(0,0,22*s,24*s,0,0,Math.PI*2);k.fill();
+      k.fillStyle='#f06292';
+      k.beginPath();k.ellipse(-12*s,-30*s,7*s,18*s,0,0,Math.PI*2);k.fill();
+      k.beginPath();k.ellipse(12*s,-30*s,7*s,18*s,0,0,Math.PI*2);k.fill();
+      k.fillStyle='#f8bbd0';
+      k.beginPath();k.ellipse(-12*s,-30*s,4*s,14*s,0,0,Math.PI*2);k.fill();
+      k.beginPath();k.ellipse(12*s,-30*s,4*s,14*s,0,0,Math.PI*2);k.fill();
+      k.fillStyle='#e91e8c';
+      k.beginPath();k.ellipse(-7*s,-16*s,7*s,4*s,-0.4,0,Math.PI*2);k.fill();
+      k.beginPath();k.ellipse(7*s,-16*s,7*s,4*s,0.4,0,Math.PI*2);k.fill();
+      k.beginPath();k.arc(0,-16*s,3.5*s,0,Math.PI*2);k.fill();
+      k.fillStyle='#fff';
+      k.beginPath();k.ellipse(-7*s,-1*s,7*s,8*s,0,0,Math.PI*2);k.fill();
+      k.beginPath();k.ellipse(7*s,-1*s,7*s,8*s,0,0,Math.PI*2);k.fill();
+      k.fillStyle='#111';
+      k.beginPath();k.ellipse(-7*s,-1*s,5.5*s,6*s,0,0,Math.PI*2);k.fill();
+      k.beginPath();k.ellipse(7*s,-1*s,5.5*s,6*s,0,0,Math.PI*2);k.fill();
+      k.fillStyle='#c2185b';
+      k.beginPath();k.ellipse(-7*s,-4*s,7.5*s,4.5*s,0,Math.PI,Math.PI*2);k.fill();
+      k.beginPath();k.ellipse(7*s,-4*s,7.5*s,4.5*s,0,Math.PI,Math.PI*2);k.fill();
+      k.strokeStyle='#c2185b';k.lineWidth=2*s;
+      k.beginPath();k.arc(0,12*s,6*s,0.2,Math.PI-0.2);k.stroke();
+      break;
+    }
+    case 'Wenda': {
+      k.fillStyle='#f5f5f5';
+      k.beginPath();k.ellipse(0,0,22*s,24*s,0,0,Math.PI*2);k.fill();
+      k.fillStyle='#f5f5f5';
+      k.beginPath();k.moveTo(-18*s,-18*s);k.lineTo(-8*s,-36*s);k.lineTo(-4*s,-18*s);k.closePath();k.fill();
+      k.beginPath();k.moveTo(18*s,-18*s);k.lineTo(8*s,-36*s);k.lineTo(4*s,-18*s);k.closePath();k.fill();
+      k.fillStyle='#e0e0e0';
+      k.beginPath();k.ellipse(-18*s,6*s,5*s,3*s,0.3,0,Math.PI*2);k.fill();
+      k.beginPath();k.ellipse(18*s,6*s,5*s,3*s,-0.3,0,Math.PI*2);k.fill();
+      k.strokeStyle='#111';k.lineWidth=2.5*s;
+      k.beginPath();k.arc(-7*s,-1*s,8*s,0,Math.PI*2);k.stroke();
+      k.beginPath();k.arc(7*s,-1*s,8*s,0,Math.PI*2);k.stroke();
+      k.fillStyle='#111';
+      k.beginPath();k.arc(-7*s,-1*s,4*s,0,Math.PI*2);k.fill();
+      k.beginPath();k.arc(7*s,-1*s,4*s,0,Math.PI*2);k.fill();
+      k.strokeStyle='#111';k.lineWidth=1.5*s;k.lineCap='round';
+      [[-14,-7],[-11,-10],[-8,-11]].forEach(([ex,ey])=>{k.beginPath();k.moveTo(ex*s,-1*s);k.lineTo((ex-2)*s,ey*s);k.stroke();});
+      [[14,-7],[11,-10],[8,-11]].forEach(([ex,ey])=>{k.beginPath();k.moveTo(ex*s,-1*s);k.lineTo((ex+2)*s,ey*s);k.stroke();});
+      k.strokeStyle='#111';k.lineWidth=2*s;
+      k.beginPath();k.arc(0,12*s,5*s,0.2,Math.PI-0.2);k.stroke();
+      break;
+    }
+    case 'Gray': {
+      k.fillStyle='#78909c';
+      k.beginPath();k.ellipse(0,0,22*s,24*s,0,0,Math.PI*2);k.fill();
+      k.fillStyle='#546e7a';
+      k.beginPath();k.moveTo(-18*s,-18*s);k.lineTo(-8*s,-36*s);k.lineTo(-4*s,-18*s);k.closePath();k.fill();
+      k.beginPath();k.moveTo(18*s,-18*s);k.lineTo(8*s,-36*s);k.lineTo(4*s,-18*s);k.closePath();k.fill();
+      k.fillStyle='#546e7a';
+      [-16,-12,-8].forEach(fx=>{k.beginPath();k.arc(fx*s,8*s,1.5*s,0,Math.PI*2);k.fill();});
+      [8,12,16].forEach(fx=>{k.beginPath();k.arc(fx*s,8*s,1.5*s,0,Math.PI*2);k.fill();});
+      k.strokeStyle='#111';k.lineWidth=2.5*s;
+      k.beginPath();k.arc(-7*s,-1*s,8*s,0,Math.PI*2);k.stroke();
+      k.beginPath();k.arc(7*s,-1*s,8*s,0,Math.PI*2);k.stroke();
+      k.fillStyle='#111';
+      k.beginPath();k.arc(-7*s,-1*s,4*s,0,Math.PI*2);k.fill();
+      k.beginPath();k.arc(7*s,-1*s,4*s,0,Math.PI*2);k.fill();
+      k.fillStyle='#111';
+      k.beginPath();k.ellipse(-7*s,-4*s,8.5*s,5*s,0,Math.PI,Math.PI*2);k.fill();
+      k.beginPath();k.ellipse(7*s,-4*s,8.5*s,5*s,0,Math.PI,Math.PI*2);k.fill();
+      k.strokeStyle='#111';k.lineWidth=2*s;
+      k.beginPath();k.moveTo(-5*s,12*s);k.lineTo(5*s,12*s);k.stroke();
+      break;
+    }
+    case 'Black': {
+      k.fillStyle='#212121';
+      k.beginPath();k.ellipse(0,2*s,22*s,26*s,0,0,Math.PI*2);k.fill();
+      k.beginPath();k.ellipse(-15*s,20*s,10*s,8*s,0.4,0,Math.PI*2);k.fill();
+      k.beginPath();k.ellipse(15*s,20*s,10*s,8*s,-0.4,0,Math.PI*2);k.fill();
+      k.fillStyle='#111';
+      k.beginPath();k.ellipse(0,-24*s,22*s,6*s,0,0,Math.PI*2);k.fill();
+      k.fillRect(-14*s,-52*s,28*s,30*s);
+      k.fillStyle='#fff';
+      k.beginPath();k.moveTo(-3*s,14*s);k.lineTo(0,28*s);k.lineTo(3*s,14*s);k.closePath();k.fill();
+      k.beginPath();k.ellipse(0,13*s,4*s,3*s,0,0,Math.PI*2);k.fill();
+      k.fillStyle='#fff';
+      k.beginPath();k.ellipse(-7*s,-2*s,8*s,6*s,0,0,Math.PI*2);k.fill();
+      k.beginPath();k.ellipse(7*s,-2*s,8*s,6*s,0,0,Math.PI*2);k.fill();
+      k.fillStyle='#000';
+      k.beginPath();k.ellipse(-7*s,-2*s,5*s,4*s,0,0,Math.PI*2);k.fill();
+      k.beginPath();k.ellipse(7*s,-2*s,5*s,4*s,0,0,Math.PI*2);k.fill();
+      break;
+    }
+    case 'Brud': {
+      k.fillStyle='#6d4c41';
+      k.beginPath();k.ellipse(0,0,22*s,24*s,0,0,Math.PI*2);k.fill();
+      k.fillStyle='#9e9e9e';
+      k.save();k.rotate(-0.25);
+      k.beginPath();k.ellipse(0,-18*s,20*s,7*s,0,0,Math.PI*2);k.fill();
+      k.fillStyle='#757575';k.fillRect(-12*s,-40*s,24*s,24*s);
+      k.beginPath();k.ellipse(0,-40*s,12*s,5*s,0,0,Math.PI*2);k.fill();
+      k.restore();
+      k.fillStyle='#5d4037';
+      k.beginPath();k.moveTo(0,-22*s);k.lineTo(-3*s,-16*s);k.lineTo(3*s,-16*s);k.closePath();k.fill();
+      k.fillStyle='#fff';
+      k.beginPath();k.ellipse(-9*s,-1*s,8*s,8*s,-0.2,0,Math.PI*2);k.fill();
+      k.beginPath();k.ellipse(9*s,-1*s,8*s,8*s,0.2,0,Math.PI*2);k.fill();
+      k.fillStyle='#111';
+      k.beginPath();k.ellipse(-11*s,-1*s,4*s,4*s,0,0,Math.PI*2);k.fill();
+      k.beginPath();k.ellipse(11*s,-1*s,4*s,4*s,0,0,Math.PI*2);k.fill();
+      k.fillStyle='#6d4c41';
+      k.beginPath();k.ellipse(-9*s,-4*s,8.5*s,4.5*s,0,Math.PI,Math.PI*2);k.fill();
+      k.beginPath();k.ellipse(9*s,-4*s,8.5*s,4.5*s,0,Math.PI,Math.PI*2);k.fill();
+      k.strokeStyle='#111';k.lineWidth=2*s;
+      k.beginPath();k.moveTo(-4*s,12*s);k.lineTo(4*s,12*s);k.stroke();
+      break;
+    }
+    case 'Tunner': {
+      k.fillStyle='#bcaaa4';
+      k.beginPath();k.ellipse(0,0,22*s,24*s,0,0,Math.PI*2);k.fill();
+      k.fillStyle='#8d6e63';
+      k.beginPath();k.ellipse(0,-20*s,26*s,7*s,0,0,Math.PI*2);k.fill();
+      k.fillStyle='#795548';
+      k.beginPath();k.ellipse(0,-30*s,16*s,14*s,0,0,Math.PI*2);k.fill();
+      k.fillStyle='#a1887f';
+      k.beginPath();k.ellipse(0,14*s,14*s,8*s,0,0,Math.PI*2);k.fill();
+      k.fillStyle='#fff';
+      k.beginPath();k.ellipse(-7*s,-1*s,7*s,7*s,0,0,Math.PI*2);k.fill();
+      k.beginPath();k.ellipse(7*s,-1*s,7*s,7*s,0,0,Math.PI*2);k.fill();
+      k.fillStyle='#111';
+      k.beginPath();k.ellipse(-7*s,-1*s,5*s,5*s,0,0,Math.PI*2);k.fill();
+      k.beginPath();k.ellipse(7*s,-1*s,5*s,5*s,0,0,Math.PI*2);k.fill();
+      k.fillStyle='#bcaaa4';
+      k.beginPath();k.ellipse(-7*s,-4*s,7.5*s,4.5*s,0,Math.PI,Math.PI*2);k.fill();
+      k.beginPath();k.ellipse(7*s,-4*s,7.5*s,4.5*s,0,Math.PI,Math.PI*2);k.fill();
+      break;
+    }
+    case 'Garnold': {
+      k.fillStyle='#f9a825';
+      k.beginPath();k.ellipse(0,0,22*s,24*s,0,0,Math.PI*2);k.fill();
+      k.fillStyle='#f57f17';
+      k.beginPath();k.roundRect(-20*s,-14*s,40*s,22*s,4*s);k.fill();
+      k.fillStyle='#1a1a1a';
+      k.beginPath();k.roundRect(-16*s,-12*s,32*s,16*s,3*s);k.fill();
+      k.fillStyle='rgba(255,255,255,0.15)';
+      k.beginPath();k.roundRect(-15*s,-11*s,14*s,6*s,2*s);k.fill();
+      k.fillStyle='#ffee58';
+      k.beginPath();k.arc(0,-4*s,3*s,0,Math.PI*2);k.fill();
+      break;
+    }
+    case 'Clukr': {
+      k.fillStyle='#9e9e9e';
+      k.beginPath();k.ellipse(0,0,22*s,24*s,0,0,Math.PI*2);k.fill();
+      k.strokeStyle='#757575';k.lineWidth=3*s;
+      k.beginPath();k.moveTo(0,-22*s);k.lineTo(0,-42*s);k.stroke();
+      k.beginPath();k.moveTo(0,-36*s);k.lineTo(-6*s,-30*s);k.stroke();
+      k.beginPath();k.moveTo(0,-36*s);k.lineTo(6*s,-30*s);k.stroke();
+      k.fillStyle='#bdbdbd';
+      k.beginPath();k.ellipse(0,-44*s,20*s,5*s,0,0,Math.PI*2);k.fill();
+      k.strokeStyle='#9e9e9e';k.lineWidth=1*s;
+      k.beginPath();k.ellipse(0,-44*s,16*s,4*s,0,0,Math.PI*2);k.stroke();
+      k.fillStyle='#fff';
+      k.beginPath();k.ellipse(-7*s,-3*s,7*s,7*s,0,0,Math.PI*2);k.fill();
+      k.beginPath();k.ellipse(7*s,-3*s,7*s,7*s,0,0,Math.PI*2);k.fill();
+      k.fillStyle='#111';
+      k.beginPath();k.ellipse(-7*s,-6*s,4*s,4*s,0,0,Math.PI*2);k.fill();
+      k.beginPath();k.ellipse(7*s,-6*s,4*s,4*s,0,0,Math.PI*2);k.fill();
+      k.fillStyle='#9e9e9e';
+      k.beginPath();k.ellipse(-7*s,-6*s,7.5*s,4*s,0,Math.PI,Math.PI*2);k.fill();
+      k.beginPath();k.ellipse(7*s,-6*s,7.5*s,4*s,0,Math.PI,Math.PI*2);k.fill();
+      k.strokeStyle='#111';k.lineWidth=2*s;
+      k.beginPath();k.arc(0,12*s,4*s,0.1,Math.PI-0.1);k.stroke();
+      break;
+    }
+    case 'Funbot': {
+      k.fillStyle='#bdbdbd';
+      k.beginPath();k.roundRect(-22*s,-20*s,44*s,38*s,4*s);k.fill();
+      k.fillStyle='#263238';
+      k.beginPath();k.roundRect(-18*s,-16*s,36*s,28*s,3*s);k.fill();
+      k.fillStyle='#00bcd4';
+      k.beginPath();k.ellipse(-7*s,-4*s,7*s,10*s,0,0,Math.PI*2);k.fill();
+      k.beginPath();k.ellipse(7*s,-4*s,7*s,10*s,0,0,Math.PI*2);k.fill();
+      k.fillStyle='#bdbdbd';k.strokeStyle='#9e9e9e';k.lineWidth=3*s;
+      k.beginPath();k.moveTo(-8*s,-20*s);k.lineTo(-8*s,-36*s);k.stroke();
+      k.beginPath();k.moveTo(8*s,-20*s);k.lineTo(8*s,-36*s);k.stroke();
+      k.fillStyle='#fdd835';
+      k.beginPath();k.arc(-8*s,-38*s,6*s,0,Math.PI*2);k.fill();
+      k.beginPath();k.arc(8*s,-38*s,6*s,0,Math.PI*2);k.fill();
+      k.fillStyle='#fdd835';
+      k.beginPath();k.roundRect(-22*s,10*s,44*s,8*s,2*s);k.fill();
+      k.strokeStyle='#80deea';k.lineWidth=2*s;
+      k.beginPath();k.arc(0,8*s,5*s,0.2,Math.PI-0.2);k.stroke();
+      break;
+    }
+    default: {
+      // 추가 캐릭터들의 generic 렌더링 (각자 고유한 모양)
+      const col=c.color;
+      k.fillStyle=col;
+      k.beginPath();k.ellipse(0,0,22*s,24*s,0,0,Math.PI*2);k.fill();
+      // 이름 기반으로 다양한 헤어/액세서리 추가
+      const seed=c.name.charCodeAt(0)%5;
+      if(seed===0){ // 뿔
+        k.fillStyle=lighten(col,-30);
+        k.beginPath();k.moveTo(-4*s,-22*s);k.lineTo(0,-38*s);k.lineTo(4*s,-22*s);k.closePath();k.fill();
+      } else if(seed===1){ // 안테나
+        k.strokeStyle=col;k.lineWidth=3*s;
+        k.beginPath();k.moveTo(0,-22*s);k.lineTo(0,-38*s);k.stroke();
+        k.fillStyle=lighten(col,40);k.beginPath();k.arc(0,-40*s,5*s,0,Math.PI*2);k.fill();
+      } else if(seed===2){ // 귀
+        k.fillStyle=lighten(col,-20);
+        k.beginPath();k.arc(-18*s,-16*s,8*s,0,Math.PI*2);k.fill();
+        k.beginPath();k.arc(18*s,-16*s,8*s,0,Math.PI*2);k.fill();
+      } else if(seed===3){ // 스파이크
+        k.fillStyle=lighten(col,-30);
+        [-14,-7,0,7,14].forEach(px=>{
+          k.beginPath();k.moveTo(px*s,-20*s);k.lineTo((px-4)*s,-32*s);k.lineTo((px+4)*s,-32*s);k.closePath();k.fill();
+        });
+      } else { // 리본
+        k.fillStyle=lighten(col,30);
+        k.beginPath();k.ellipse(-7*s,-20*s,7*s,4*s,-0.4,0,Math.PI*2);k.fill();
+        k.beginPath();k.ellipse(7*s,-20*s,7*s,4*s,0.4,0,Math.PI*2);k.fill();
+        k.beginPath();k.arc(0,-20*s,3.5*s,0,Math.PI*2);k.fill();
       }
-    }
-
-    // emojis
-    for (const pr of projectiles) {
-      ctx.font = "20px system-ui";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(pr.emoji, pr.x*CELL, pr.y*CELL);
+      // 공통 눈
+      k.fillStyle='#fff';
+      k.beginPath();k.ellipse(-7*s,-1*s,7*s,7*s,0,0,Math.PI*2);k.fill();
+      k.beginPath();k.ellipse(7*s,-1*s,7*s,7*s,0,0,Math.PI*2);k.fill();
+      k.fillStyle='#111';
+      k.beginPath();k.ellipse(-7*s,-1*s,5*s,5*s,0,0,Math.PI*2);k.fill();
+      k.beginPath();k.ellipse(7*s,-1*s,5*s,5*s,0,0,Math.PI*2);k.fill();
+      k.fillStyle=col;
+      k.beginPath();k.ellipse(-7*s,-4*s,7.5*s,4*s,0,Math.PI,Math.PI*2);k.fill();
+      k.beginPath();k.ellipse(7*s,-4*s,7.5*s,4*s,0,Math.PI,Math.PI*2);k.fill();
+      k.strokeStyle='#111';k.lineWidth=2*s;
+      k.beginPath();k.arc(0,12*s,5*s,0.2,Math.PI-0.2);k.stroke();
+      break;
     }
   }
+  k.restore();
+}
 
-  // ===================== UI =====================
-  function ui() {
-    const p = snakes[0];
-    if (p && p.alive) {
-      myValEl.textContent = String(p.value);
-      myLenEl.textContent = String(p.body.length);
-      boostEl.textContent = String(Math.ceil(p.boostMs/1000));
-      shieldEl.textContent = String(Math.ceil(p.shieldMs/1000));
-      swordEl.textContent = String(Math.ceil(p.swordMs/1000));
+// ── Physics ───────────────────────────────────────────────────────────────────
+const SPEED=1.6,RESTITUTION=0.82,WALL_REST=0.78,FRICTION=0.9985,MIN_SPEED=1.2,MAX_SPEED=3.5;
+
+// ── Maze ──────────────────────────────────────────────────────────────────────
+const CELL=52;
+let walls=[],COLS,ROWS,mazeOX,mazeOY;
+function buildMaze(){
+  const usableW=W-SIDEBAR_W;
+  COLS=Math.floor(usableW/CELL);ROWS=Math.floor((H-HUD_H)/CELL);
+  mazeOX=(usableW-COLS*CELL)/2;mazeOY=HUD_H+(H-HUD_H-ROWS*CELL)/2;
+  walls=[];
+  const cw=Array.from({length:ROWS},()=>Array(COLS).fill(3));
+  const vis=Array.from({length:ROWS},()=>Array(COLS).fill(false));
+  const stack=[{r:0,c:0}];vis[0][0]=true;
+  while(stack.length){
+    const {r,c}=stack[stack.length-1];
+    const nbrs=shuffle([[0,1],[0,-1],[1,0],[-1,0]])
+      .map(([dr,dc])=>({dr,dc,nr:r+dr,nc:c+dc}))
+      .filter(({nr,nc})=>nr>=0&&nr<ROWS&&nc>=0&&nc<COLS&&!vis[nr][nc]);
+    if(!nbrs.length){stack.pop();continue;}
+    const {dr,dc,nr,nc}=nbrs[0];
+    vis[nr][nc]=true;
+    if(dr===0&&dc===1)cw[r][c]&=~1;if(dr===0&&dc===-1)cw[r][nc]&=~1;
+    if(dr===1&&dc===0)cw[r][c]&=~2;if(dr===-1&&dc===0)cw[nr][nc]&=~2;
+    stack.push({r:nr,c:nc});
+  }
+  function addWall(x1,y1,x2,y2){const dx=x2-x1,dy=y2-y1,len=Math.sqrt(dx*dx+dy*dy);if(len<0.01)return;walls.push({x1,y1,x2,y2,nx:-dy/len,ny:dx/len,len});}
+  addWall(mazeOX,mazeOY,mazeOX+COLS*CELL,mazeOY);
+  addWall(mazeOX,mazeOY+ROWS*CELL,mazeOX+COLS*CELL,mazeOY+ROWS*CELL);
+  addWall(mazeOX,mazeOY,mazeOX,mazeOY+ROWS*CELL);
+  addWall(mazeOX+COLS*CELL,mazeOY,mazeOX+COLS*CELL,mazeOY+ROWS*CELL);
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+    const x=mazeOX+c*CELL,y=mazeOY+r*CELL;
+    if(cw[r][c]&1)addWall(x+CELL,y,x+CELL,y+CELL);
+    if(cw[r][c]&2)addWall(x,y+CELL,x+CELL,y+CELL);
+  }
+}
+function shuffle(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}return b;}
+
+// ── Goal ──────────────────────────────────────────────────────────────────────
+let GOAL={},goalActive=false,goalTimer=0;
+const GOAL_DELAY=5000;
+function placeGoal(){GOAL={x:mazeOX+(COLS-1)*CELL+5,y:mazeOY+(ROWS-1)*CELL+5,w:CELL-10,h:CELL-10};goalActive=false;goalTimer=0;}
+
+// ── Car top-down drawing ──────────────────────────────────────────────────────
+function lighten(hex,amt){
+  let r=parseInt(hex.slice(1,3),16)||0,g=parseInt(hex.slice(3,5),16)||0,b=parseInt(hex.slice(5,7),16)||0;
+  r=Math.max(0,Math.min(255,r+amt));g=Math.max(0,Math.min(255,g+amt));b=Math.max(0,Math.min(255,b+amt));
+  return '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
+}
+function drawTopdownWheel(x,y,h,w,bodyColor){
+  ctx.save();ctx.translate(x,y);
+  ctx.fillStyle='#1a1a1a';ctx.beginPath();ctx.ellipse(0,0,w,h,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#ccc';ctx.beginPath();ctx.ellipse(0,0,w*.55,h*.55,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=bodyColor;ctx.beginPath();ctx.ellipse(0,0,w*.25,h*.25,0,0,Math.PI*2);ctx.fill();
+  ctx.restore();
+}
+function drawCarBody(color,scale){
+  const s=scale||1;const W2=16*s,H2=9*s;
+  ctx.fillStyle='rgba(0,0,0,0.3)';ctx.beginPath();ctx.ellipse(1*s,2*s,W2*.9,H2*.55,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=color;ctx.beginPath();ctx.roundRect(-W2,-H2,W2*2,H2*2,4*s);ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,0.12)';ctx.beginPath();ctx.roundRect(-W2+2*s,-H2+2*s,W2*1.1,H2*.9,3*s);ctx.fill();
+  ctx.fillStyle='rgba(20,30,50,0.85)';ctx.beginPath();ctx.roundRect(-4*s,-H2+2.5*s,10*s,H2*2-5*s,3*s);ctx.fill();
+  ctx.fillStyle=lighten(color,-30);ctx.fillRect(W2-3*s,-H2+1*s,4*s,H2*2-2*s);
+  ctx.fillStyle=lighten(color,-40);ctx.fillRect(-W2-2*s,-H2+2*s,3*s,H2*2-4*s);
+  ctx.fillStyle='#fffde7';ctx.shadowColor='#fff8e1';ctx.shadowBlur=6*s;
+  ctx.beginPath();ctx.arc(W2-1*s,-H2+2*s,2*s,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(W2-1*s,H2-2*s,2*s,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#ff1744';ctx.shadowColor='#ff1744';ctx.shadowBlur=5*s;
+  ctx.beginPath();ctx.arc(-W2+1*s,-H2+2*s,1.8*s,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(-W2+1*s,H2-2*s,1.8*s,0,Math.PI*2);ctx.fill();
+  ctx.shadowBlur=0;
+  drawTopdownWheel(W2-2*s,-H2-2*s,4*s,2.5*s,color);
+  drawTopdownWheel(W2-2*s,H2+2*s,4*s,2.5*s,color);
+  drawTopdownWheel(-W2+2*s,-H2-2*s,4*s,2.5*s,color);
+  drawTopdownWheel(-W2+2*s,H2+2*s,4*s,2.5*s,color);
+}
+
+// ── Cars ──────────────────────────────────────────────────────────────────────
+const CAR_R=13;
+let cars=[],particles=[],gameOver=false,gameStarted=false,animId,lastTime=0;
+
+function spawnCars(){
+  const count=Math.min(Math.max(parseInt(document.getElementById('carCount').value)||6,1),30);
+  cars=[];
+  // 30대 지원: SPRUNKI 배열을 반복 사용 (색상 변형 포함)
+  const chars=[];
+  const base=shuffle([...SPRUNKI]);
+  for(let i=0;i<count;i++){
+    const orig=base[i%base.length];
+    if(i<base.length){
+      chars.push({...orig});
     } else {
-      myValEl.textContent = "-";
-      myLenEl.textContent = "-";
-      boostEl.textContent = "0";
-      shieldEl.textContent = "0";
-      swordEl.textContent = "0";
+      // 중복 시 이름에 번호 붙이고 색상 약간 변형
+      const variant=Math.floor(i/base.length);
+      chars.push({name:orig.name+(variant+2), color:lighten(orig.color,(variant%2===0?40:-40))});
     }
-    const aliveAI = snakes.slice(1).filter(s => s.alive).length;
-    aiAliveEl.textContent = String(aliveAI);
-    tpsEl.textContent = String(tps);
   }
+  const maxC=Math.ceil(COLS/2),maxR=Math.ceil(ROWS/2);
+  const pool=[];
+  for(let r=0;r<maxR;r++)for(let c=0;c<maxC;c++)pool.push([r,c]);
+  shuffle(pool);
+  for(let i=0;i<count;i++){
+    const [r,c]=pool[i%pool.length];
+    const ang=Math.random()*Math.PI*2;
+    const ch=chars[i];
+    cars.push({
+      name:ch.name,color:ch.color,
+      x:mazeOX+c*CELL+CELL/2+(Math.random()-.5)*8,
+      y:mazeOY+r*CELL+CELL/2+(Math.random()-.5)*8,
+      vx:Math.cos(ang)*SPEED,vy:Math.sin(ang)*SPEED,
+      omega:0,angle:ang,trail:[],alive:true,spinDecay:0.85
+    });
+  }
+  particles=[];buildSidebar();
+}
 
-  // ===================== Quiz =====================
-  function generateQuiz() {
-    const ops = ['+','-','×','÷'];
-    const op = ops[randInt(0, ops.length-1)];
-    let a = randInt(10, 99);
-    let b = randInt(10, 99);
-    let ans = 0;
+function buildSidebar(){
+  const sb=document.getElementById('sidebar');
+  sb.innerHTML='<div class="sb-title">RACERS</div>';
+  for(const c of cars){
+    const div=document.createElement('div');div.className='sb-item';
+    div.style.cssText='background:'+c.color+'18;border-color:'+c.color+'55;color:'+(c.name.startsWith('Wenda')||c.name.startsWith('Black')?'#aaa':c.color);
+    div.innerHTML='<span class="sb-dot" style="background:'+c.color+'"></span>'+c.name;
+    sb.appendChild(div);
+  }
+}
 
-    if (op === '+') { ans = a + b; }
-    if (op === '-') {
-      const hi = randInt(10, 99);
-      const lo = randInt(10, hi);
-      a = hi; b = lo;
-      ans = a - b; // >=0
-      if (ans === 0) { a = hi; b = hi - 1; ans = 1; }
+// ── Particles ─────────────────────────────────────────────────────────────────
+function spawnImpact(x,y,vx,vy,color,intensity){
+  intensity=intensity||1;
+  for(let i=0;i<Math.floor(8+intensity*10);i++){
+    const spd=(1.5+Math.random()*3)*intensity;
+    const ang=Math.atan2(vy,vx)+Math.PI+(Math.random()-.5)*Math.PI*1.8;
+    particles.push({x,y,vx:Math.cos(ang)*spd,vy:Math.sin(ang)*spd,life:1,decay:.04+Math.random()*.04,r:1.5+Math.random()*3,color,sw:false});
+  }
+  particles.push({x,y,sw:true,r:3,life:1,decay:.06+intensity*.02,color,lw:1.5+intensity});
+  for(let i=0;i<4;i++){const a=Math.random()*Math.PI*2,sp=2+Math.random()*3;particles.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:1,decay:.07+Math.random()*.05,r:1.5,color:'#ffe066',sw:false});}
+}
+function updateParticles(){for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.life-=p.decay;if(p.life<=0){particles.splice(i,1);continue;}if(p.sw){p.r+=3;continue;}p.x+=p.vx;p.y+=p.vy;p.vx*=.88;p.vy*=.88;}}
+function drawParticles(){ctx.save();ctx.shadowBlur=0;for(const p of particles){ctx.globalAlpha=Math.max(0,p.life);if(p.sw){ctx.strokeStyle=p.color;ctx.lineWidth=p.lw||2;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.stroke();}else{ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();}}ctx.globalAlpha=1;ctx.restore();}
+
+// ── Physics ───────────────────────────────────────────────────────────────────
+function enforceSpeed(c){const s=Math.sqrt(c.vx*c.vx+c.vy*c.vy);if(s>.01){if(s<MIN_SPEED){c.vx=c.vx/s*MIN_SPEED;c.vy=c.vy/s*MIN_SPEED;}else if(s>MAX_SPEED){c.vx=c.vx/s*MAX_SPEED;c.vy=c.vy/s*MAX_SPEED;}}}
+function resolveWall(car){for(const w of walls){const{x1,y1,x2,y2,nx,ny,len}=w;const dx=car.x-x1,dy=car.y-y1;const dist=dx*nx+dy*ny;if(dist>CAR_R||dist<-CAR_R)continue;const wx=x2-x1,wy=y2-y1;const t=(dx*wx+dy*wy)/(len*len);if(t<-.01||t>1.01)continue;if(Math.abs(dist)<CAR_R){const pen=CAR_R-Math.abs(dist),sg=dist<0?-1:1;car.x+=nx*pen*sg;car.y+=ny*pen*sg;const vn=car.vx*nx+car.vy*ny;if(vn*sg>0)continue;const j=-(1+WALL_REST)*vn;car.vx+=j*nx;car.vy+=j*ny;const tx=-ny,ty=nx,vt=car.vx*tx+car.vy*ty;car.vx-=.08*vt*tx;car.vy-=.08*vt*ty;car.omega=vt*.04;spawnImpact(car.x,car.y,car.vx,car.vy,car.color,Math.min(Math.sqrt(car.vx*car.vx+car.vy*car.vy)/SPEED,2));enforceSpeed(car);}}}
+function resolveCarCar(a,b){const dx=b.x-a.x,dy=b.y-a.y,dist=Math.sqrt(dx*dx+dy*dy);if(dist===0||dist>=CAR_R*2)return;const nx=dx/dist,ny=dy/dist;const ov=(CAR_R*2-dist)/2+.5;a.x-=nx*ov;a.y-=ny*ov;b.x+=nx*ov;b.y+=ny*ov;const rvx=a.vx-b.vx,rvy=a.vy-b.vy,vRel=rvx*nx+rvy*ny;if(vRel<=0)return;const j=-(1+RESTITUTION)*vRel*.5;a.vx+=j*nx;a.vy+=j*ny;b.vx-=j*nx;b.vy-=j*ny;const tx=-ny,ty=nx,vt=rvx*tx+rvy*ty;a.omega+=vt*.05;b.omega-=vt*.05;a.vx-=.06*vt*tx;a.vy-=.06*vt*ty;b.vx+=.06*vt*tx;b.vy+=.06*vt*ty;enforceSpeed(a);enforceSpeed(b);const ix=(a.x+b.x)/2,iy=(a.y+b.y)/2;spawnImpact(ix,iy,rvx,rvy,'#fff',Math.min(Math.abs(vRel)/SPEED*.8+.3,2.5));spawnImpact(ix,iy,a.vx,a.vy,a.color,.4);spawnImpact(ix,iy,b.vx,b.vy,b.color,.4);}
+
+// ── Win face ──────────────────────────────────────────────────────────────────
+function drawWinFace(ch){
+  const wc=document.getElementById('winCanvas');
+  const wctx=wc.getContext('2d');
+  const S=180,H=200;
+  wc.width=S;wc.height=H;
+  wctx.clearRect(0,0,S,H);
+  const bg=wctx.createRadialGradient(S/2,H/2,5,S/2,H/2,90);
+  bg.addColorStop(0,ch.color+'44');bg.addColorStop(1,'#0a0f1a');
+  wctx.fillStyle=bg;wctx.fillRect(0,0,S,H);
+  wctx.save();wctx.shadowColor=ch.color;wctx.shadowBlur=20;
+  wctx.strokeStyle=ch.color;wctx.lineWidth=3;
+  wctx.beginPath();wctx.arc(S/2,H/2-10,78,0,Math.PI*2);wctx.stroke();
+  wctx.restore();
+  drawSprunkiHead(ch,S/2,H/2-10,72,wctx);
+  wctx.fillStyle='#ffd700';wctx.font='16px Arial';wctx.textAlign='center';
+  wctx.fillText('✦',16,18);wctx.fillText('✦',S-16,18);
+  wctx.fillText('✦',16,H-10);wctx.fillText('✦',S-16,H-10);
+  document.getElementById('winCard').style.borderColor=ch.color;
+  document.getElementById('winCard').style.boxShadow='0 0 50px '+ch.color+'55';
+}
+
+// ── Update ────────────────────────────────────────────────────────────────────
+function update(dt){
+  if(!goalActive){goalTimer+=dt;if(goalTimer>=GOAL_DELAY)goalActive=true;}
+  updateParticles();
+  for(const c of cars){
+    if(!c.alive)continue;
+    c.trail.push({x:c.x,y:c.y});if(c.trail.length>16)c.trail.shift();
+    c.x+=c.vx;c.y+=c.vy;c.vx*=FRICTION;c.vy*=FRICTION;
+    c.angle+=c.omega;c.omega*=c.spinDecay;
+    if(Math.abs(c.omega)<.025){let da=Math.atan2(c.vy,c.vx)-c.angle;while(da>Math.PI)da-=Math.PI*2;while(da<-Math.PI)da+=Math.PI*2;c.angle+=da*.2;}
+    enforceSpeed(c);resolveWall(c);
+  }
+  for(let iter=0;iter<2;iter++)for(let i=0;i<cars.length;i++)for(let j=i+1;j<cars.length;j++)if(cars[i].alive&&cars[j].alive)resolveCarCar(cars[i],cars[j]);
+  if(goalActive){
+    for(const c of cars){
+      if(!c.alive)continue;
+      if(c.x>GOAL.x&&c.x<GOAL.x+GOAL.w&&c.y>GOAL.y&&c.y<GOAL.y+GOAL.h){
+        gameOver=true;draw();
+        const ch=SPRUNKI.find(s=>s.name===c.name)||{name:c.name,color:c.color};
+        drawWinFace(ch);
+        document.getElementById('msg').style.color=c.color;
+        document.getElementById('msg').textContent='🏆 '+c.name+' 우승!';
+        document.getElementById('submsg').textContent='Sprunki 레이싱 챔피언 🎉';
+        document.getElementById('overlay').classList.add('show');return;
+      }
     }
-    if (op === '×') { ans = a * b; }
-    if (op === '÷') {
-      b = randInt(10, 99);
-      const k = randInt(1, 9);
-      a = b * k;
-      ans = k;
-    }
-
-    quiz = {a,b,op,answer: ans};
-    quizQEl.textContent = `${a} ${op} ${b} = ?`;
-    quizAEl.value = "";
-    quizAEl.focus();
   }
+  const remain=Math.max(0,(GOAL_DELAY-goalTimer)/1000);
+  document.getElementById('timer').textContent=goalActive?'🏁 GOAL 활성!':'⏱ '+remain.toFixed(1)+'s';
+}
 
-  function startFromQuiz() {
-    const raw = (quizAEl.value || "").trim();
-    const userAns = Number(raw);
-    const startVal = (Number.isFinite(userAns) && quiz && userAns === quiz.answer) ? quiz.answer : 1;
+// ── Draw ──────────────────────────────────────────────────────────────────────
+function drawMaze(){ctx.save();ctx.strokeStyle='#2a9d8f';ctx.lineWidth=2.5;ctx.shadowColor='#2a9d8f';ctx.shadowBlur=6;for(const w of walls){ctx.beginPath();ctx.moveTo(w.x1,w.y1);ctx.lineTo(w.x2,w.y2);ctx.stroke();}ctx.restore();}
+function drawGoal(){
+  const pulse=Math.sin(Date.now()/180)*.15;ctx.save();
+  if(!goalActive){const rem=Math.max(0,(GOAL_DELAY-goalTimer)/1000);ctx.fillStyle='rgba(80,80,80,'+(0.22+Math.abs(pulse))+')';ctx.fillRect(GOAL.x,GOAL.y,GOAL.w,GOAL.h);ctx.strokeStyle='#555';ctx.lineWidth=2;ctx.setLineDash([4,3]);ctx.strokeRect(GOAL.x,GOAL.y,GOAL.w,GOAL.h);ctx.setLineDash([]);ctx.fillStyle='#777';ctx.font='bold 11px Arial';ctx.textAlign='center';ctx.fillText('🔒',GOAL.x+GOAL.w/2,GOAL.y+GOAL.h/2-4);ctx.fillText(rem.toFixed(1)+'s',GOAL.x+GOAL.w/2,GOAL.y+GOAL.h/2+10);}
+  else{ctx.shadowColor='#ffd700';ctx.shadowBlur=28;ctx.fillStyle='rgba(255,215,0,'+(0.28+pulse)+')';ctx.fillRect(GOAL.x,GOAL.y,GOAL.w,GOAL.h);ctx.strokeStyle='#ffd700';ctx.lineWidth=2;ctx.setLineDash([5,3]);ctx.strokeRect(GOAL.x,GOAL.y,GOAL.w,GOAL.h);ctx.setLineDash([]);ctx.shadowBlur=0;ctx.fillStyle='#ffd700';ctx.font='bold 12px Arial';ctx.textAlign='center';ctx.fillText('🏁',GOAL.x+GOAL.w/2,GOAL.y+GOAL.h/2-4);ctx.fillText('GOAL',GOAL.x+GOAL.w/2,GOAL.y+GOAL.h/2+10);}
+  ctx.restore();
+}
+function drawGameCar(c){
+  ctx.save();ctx.shadowBlur=0;
+  for(let i=0;i<c.trail.length;i++){const a=(i/c.trail.length)*.18;const hex=Math.floor(a*255).toString(16).padStart(2,'0');ctx.fillStyle=c.color+hex;ctx.beginPath();ctx.arc(c.trail[i].x,c.trail[i].y,2.5*(i/c.trail.length),0,Math.PI*2);ctx.fill();}
+  ctx.restore();
+  ctx.save();ctx.shadowColor=c.color;ctx.shadowBlur=10;ctx.strokeStyle=c.color+'66';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(c.x,c.y,CAR_R+2,0,Math.PI*2);ctx.stroke();ctx.restore();
+  ctx.save();ctx.translate(c.x,c.y);ctx.rotate(c.angle);drawCarBody(c.color,.75);ctx.restore();
+}
+function draw(){
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#0a0f1a';ctx.fillRect(0,0,W,H);
+  ctx.save();ctx.strokeStyle='rgba(255,255,255,0.02)';ctx.lineWidth=1;ctx.shadowBlur=0;
+  for(let x=0;x<W-SIDEBAR_W;x+=CELL){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=0;y<H;y+=CELL){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W-SIDEBAR_W,y);ctx.stroke();}
+  ctx.restore();
+  drawMaze();drawGoal();drawParticles();cars.forEach(drawGameCar);
+}
+function loop(ts){if(gameOver)return;const dt=Math.min(ts-lastTime,50);lastTime=ts;update(dt);draw();animId=requestAnimationFrame(loop);}
 
-    quizOverlay.style.display = "none";
-    resetWithPlayerStartValue(startVal);
-  }
-
-  quizGoBtn.addEventListener('click', startFromQuiz);
-  quizAEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') startFromQuiz(); });
-
-  // ===================== Restart =====================
-  function showQuiz() {
-    gameRunning = false;
-    gameOver = false;
-    gameOverOverlay.style.display = "none";
-    quizOverlay.style.display = "flex";
-    generateQuiz();
-  }
-
-  restartBtn.addEventListener('click', showQuiz);
-  goRestartBtn.addEventListener('click', showQuiz);
-
-  // ===================== Start loop =====================
-  function frame(ts) {
-    const dt = ts - lastTs;
-    lastTs = ts;
-    acc += dt;
-
-    stepTimers(dt);
-
-    const stepMs = 1000 / tps;
-    while (acc >= stepMs) {
-      tick();
-      acc -= stepMs;
-    }
-    requestAnimationFrame(frame);
-  }
-
-  // boot
-  showQuiz();
-  requestAnimationFrame(frame);
-})();
+function startGame(){
+  const v=parseInt(document.getElementById('carCount').value)||6;
+  if(v<1||v>30){alert('1~30 사이로 입력해주세요!');return;}
+  gameOver=false;gameStarted=true;
+  document.getElementById('startScreen').style.display='none';
+  document.getElementById('hud').style.display='flex';
+  document.getElementById('sidebar').style.display='flex';
+  document.getElementById('overlay').classList.remove('show');
+  resize();buildMaze();placeGoal();spawnCars();
+  cancelAnimationFrame(animId);lastTime=performance.now();animId=requestAnimationFrame(loop);
+}
+function showStart(){
+  gameOver=false;gameStarted=false;cancelAnimationFrame(animId);
+  document.getElementById('overlay').classList.remove('show');
+  document.getElementById('hud').style.display='none';
+  document.getElementById('sidebar').style.display='none';
+  document.getElementById('startScreen').style.display='flex';
+}
+document.getElementById('carCount').addEventListener('keydown',e=>{if(e.key==='Enter')startGame();});
+resize();
 </script>
 </body>
 </html>
